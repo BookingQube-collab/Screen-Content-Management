@@ -131,29 +131,19 @@ export default function DisplayPage() {
       </header>
 
       {/* ══════════════════════════════════════════════
-          MAIN CARD — current activity
+          MAIN CARD — current activity (card stays fixed, content fades)
       ══════════════════════════════════════════════ */}
       <div className="relative z-20 flex-1 flex items-stretch justify-center px-4 py-2 overflow-hidden">
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={current.id}
-            initial={{ opacity: 0, x: direction * 60, scale: 0.92 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: direction * -60, scale: 0.92 }}
-            transition={{ duration: 0.5, type: "spring", bounce: 0.22 }}
-            className="flex"
-            style={{ width: "100%", maxWidth: "clamp(300px, 88vw, 700px)" }}
-          >
-            <MainCard
-              activity={current}
-              prevActivity={activities[prevIdx]}
-              nextActivity={activities[nextIdx]}
-              onPrev={() => go(prevIdx)}
-              onNext={() => go(nextIdx)}
-              fallback={fallback}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex" style={{ width: "100%", maxWidth: "clamp(300px, 88vw, 700px)" }}>
+          <MainCard
+            activity={current}
+            prevActivity={activities[prevIdx]}
+            nextActivity={activities[nextIdx]}
+            onPrev={() => go(prevIdx)}
+            onNext={() => go(nextIdx)}
+            fallback={fallback}
+          />
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════
@@ -272,32 +262,24 @@ function MainCard({
     >
       {/* ── Hero Image fills flex-1 ── */}
       <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-        <img
-          src={img}
-          alt={activity.name}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: "center top" }}
-        />
+        <AnimatePresence mode="sync">
+          <motion.img
+            key={activity.id + "-img"}
+            src={img}
+            alt={activity.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: "center top" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+          />
+        </AnimatePresence>
 
         {/* Dark gradient at bottom for legibility */}
         <div className="absolute inset-0" style={{
           background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(10,8,18,0.0) 35%, rgba(10,8,18,0.98) 100%)"
         }} />
-
-        {/* Featured badge */}
-        {activity.isFeatured && (
-          <div
-            className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full font-bold uppercase tracking-widest text-white"
-            style={{
-              fontSize: "clamp(9px,2vw,12px)",
-              background: `linear-gradient(90deg, ${C.purple}, ${C.pink})`,
-              boxShadow: `0 0 14px ${C.purple}`,
-              zIndex: 3,
-            }}
-          >
-            ★ Featured
-          </div>
-        )}
 
         {/* Prev / Next invisible tap zones */}
         <button
@@ -328,7 +310,15 @@ function MainCard({
       </div>
 
       {/* ── Info Panel ── */}
-      <div className="flex-none px-4 pt-3 pb-3 flex flex-col gap-2">
+      <AnimatePresence mode="wait">
+      <motion.div
+        key={activity.id + "-info"}
+        className="flex-none px-4 pt-3 pb-3 flex flex-col gap-2"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.35 }}
+      >
         {/* Description */}
         <p className="text-white/55 leading-snug text-center line-clamp-2" style={{ fontSize: "clamp(11px,2.8vw,15px)" }}>
           {activity.shortDescription}
@@ -375,7 +365,8 @@ function MainCard({
         >
           {activity.ctaText || "Explore Now"} ›
         </button>
-      </div>
+      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
