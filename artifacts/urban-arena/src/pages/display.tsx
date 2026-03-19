@@ -1,49 +1,33 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity } from "@workspace/api-client-react";
-import { Loader2, Users, AlertTriangle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-/* ─── Brand colours (Urban Arena purple/neon) ─────────────────── */
+/* ─── Brand colours ─────────────────────────────────────────── */
 const C = {
-  bg:          "#0A0812",
-  purpleDark:  "#3B0764",
-  purple:      "#7C3AED",
-  purpleBright:"#A855F7",
-  pink:        "#EC4899",
-  neonBlue:    "#38BDF8",
-  white:       "#FFFFFF",
+  bg:           "#0A0812",
+  purple:       "#7C3AED",
+  purpleBright: "#A855F7",
+  pink:         "#EC4899",
 };
 
 export default function DisplayPage() {
   const { data: activities, isLoading: isLoadingAct } = useListDisplayActivities();
-  const { settings, isLoading: isLoadingSet } = useAppSettings();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const stripRef = useRef<HTMLDivElement>(null);
+  const { settings, isLoading: isLoadingSet }         = useAppSettings();
+  const [idx, setIdx] = useState(0);
 
-  const go = (idx: number) => {
-    setDirection(idx > currentIndex ? 1 : -1);
-    setCurrentIndex(idx);
+  const go = (next: number) => {
+    if (!activities) return;
+    setIdx(((next % activities.length) + activities.length) % activities.length);
   };
 
   /* Auto-slide */
   useEffect(() => {
     if (!settings.auto_slide || !activities || activities.length <= 1) return;
-    const id = setInterval(() => {
-      setDirection(1);
-      setCurrentIndex(prev => (prev + 1) % activities.length);
-    }, settings.slide_interval * 1000);
+    const id = setInterval(() => setIdx(p => (p + 1) % activities.length), settings.slide_interval * 1000);
     return () => clearInterval(id);
   }, [settings.auto_slide, settings.slide_interval, activities]);
-
-  /* Keep active thumbnail in view */
-  useEffect(() => {
-    if (!stripRef.current || !activities) return;
-    const thumb = stripRef.current.children[currentIndex] as HTMLElement;
-    if (thumb) thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [currentIndex, activities]);
 
   if (isLoadingAct || isLoadingSet) {
     return (
@@ -52,321 +36,315 @@ export default function DisplayPage() {
       </div>
     );
   }
-
   if (!activities || activities.length === 0) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center text-white text-2xl font-bold" style={{ background: C.bg }}>
+      <div className="fixed inset-0 flex items-center justify-center text-white text-3xl font-black" style={{ background: C.bg }}>
         NO SIGNAL
       </div>
     );
   }
 
-  const count      = activities.length;
-  const current    = activities[currentIndex];
-  const prevIdx    = (currentIndex - 1 + count) % count;
-  const nextIdx    = (currentIndex + 1) % count;
-  const fallback   = `${import.meta.env.BASE_URL}images/placeholder-vr.png`;
-  const heroUrl    = current.heroImageUrl || current.cardImageUrl || fallback;
+  const count   = activities.length;
+  const act     = activities[idx];
+  const prevAct = activities[(idx - 1 + count) % count];
+  const nextAct = activities[(idx + 1) % count];
+  const bgImg   = act.heroImageUrl || act.cardImageUrl || "";
 
   return (
     <div
-      className="fixed inset-0 overflow-hidden select-none cursor-none text-white flex flex-col"
-      style={{ background: C.bg }}
+      className="fixed inset-0 overflow-hidden select-none text-white flex flex-col"
+      style={{ background: C.bg, fontFamily: "system-ui, sans-serif" }}
     >
-      {/* ══════════════════════════════════════════════
-          BACKGROUND — blurred hero for current activity
-      ══════════════════════════════════════════════ */}
-      <AnimatePresence mode="wait">
+
+      {/* ══ FULL-BLEED BACKGROUND ══ */}
+      <AnimatePresence mode="sync">
         <motion.div
-          key={current.id + "-bg"}
+          key={act.id + "-bg"}
           className="absolute inset-0 z-0"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2 }}
+          transition={{ duration: 1 }}
         >
-          <img src={heroUrl} alt="" className="w-full h-full object-cover" style={{ filter: "blur(8px) brightness(0.25) saturate(1.8)" }} />
+          {bgImg && (
+            <img
+              src={bgImg}
+              alt=""
+              className="w-full h-full object-cover"
+              style={{ filter: "brightness(0.5) saturate(1.7)" }}
+            />
+          )}
+          <div className="absolute inset-0" style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,58,237,0.6) 0%, transparent 60%),
+              linear-gradient(to bottom, rgba(10,8,18,0.3) 0%, rgba(10,8,18,0.1) 40%, rgba(10,8,18,0.9) 100%)
+            `
+          }} />
         </motion.div>
       </AnimatePresence>
 
-      {/* Purple scanline overlay */}
+      {/* Scanlines */}
       <div className="absolute inset-0 z-0 pointer-events-none" style={{
-        background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139,46,217,0.04) 2px, rgba(139,46,217,0.04) 4px)`,
+        background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(100,0,200,0.03) 2px, rgba(100,0,200,0.03) 4px)`,
       }} />
 
-      {/* ══════════════════════════════════════════════
-          EXPLORE WATERMARK
-      ══════════════════════════════════════════════ */}
-      <div className="absolute top-[3%] inset-x-0 z-10 pointer-events-none text-center overflow-hidden">
-        <span className="font-black uppercase leading-none select-none" style={{
-          fontSize: "clamp(46px, 19.5vw, 185px)",
-          background: `linear-gradient(135deg, rgba(168,85,247,0.35) 0%, rgba(236,72,153,0.25) 100%)`,
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          letterSpacing: "0.08em",
-          display: "block",
-        }}>
+      {/* ══ EXPLORE WATERMARK ══ */}
+      <div className="absolute inset-x-0 top-[2%] z-10 pointer-events-none text-center overflow-hidden">
+        <span
+          className="font-black uppercase leading-none"
+          style={{
+            fontSize: "clamp(54px, 23vw, 210px)",
+            letterSpacing: "0.05em",
+            background: "linear-gradient(135deg, rgba(168,85,247,0.55) 0%, rgba(236,72,153,0.35) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            display: "block",
+          }}
+        >
           {settings.overlay_heading || "EXPLORE"}
         </span>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          HEADER
-      ══════════════════════════════════════════════ */}
-      <header className="relative z-30 flex-none flex justify-center items-center py-3">
-        <div className="flex items-center gap-2 px-5 py-2 rounded-2xl" style={{
-          background: "rgba(124,58,237,0.18)",
-          border: "1px solid rgba(168,85,247,0.35)",
-          backdropFilter: "blur(8px)",
-        }}>
-          {/* Neon bar-chart icon */}
-          <div className="flex items-end gap-[2px]">
-            <span className="w-[5px] h-[13px] rounded-sm" style={{ background: `linear-gradient(to bottom, #EC4899, ${C.purple})` }} />
-            <span className="w-[5px] h-[19px] rounded-sm" style={{ background: `linear-gradient(to bottom, #EC4899, ${C.purple})` }} />
-            <span className="w-[5px] h-[9px] rounded-sm"  style={{ background: `linear-gradient(to bottom, #EC4899, ${C.purple})` }} />
+      {/* ══ LOGO ══ */}
+      <header className="relative z-30 flex-none flex justify-center pt-3 pb-1">
+        <div
+          className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl"
+          style={{
+            background: "rgba(124,58,237,0.25)",
+            border: "1px solid rgba(168,85,247,0.45)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <div className="flex items-end gap-[3px]">
+            <span className="w-[5px] h-[11px] rounded-sm" style={{ background: `linear-gradient(to top,${C.purple},${C.pink})` }} />
+            <span className="w-[5px] h-[17px] rounded-sm" style={{ background: `linear-gradient(to top,${C.purple},${C.pink})` }} />
+            <span className="w-[5px] h-[8px]  rounded-sm" style={{ background: `linear-gradient(to top,${C.purple},${C.pink})` }} />
           </div>
-          <span className="font-bold text-white" style={{ fontSize: "clamp(14px,4vw,20px)" }}>Urban Arena</span>
+          <span className="font-bold text-white" style={{ fontSize: "clamp(14px,4vw,22px)" }}>Urban Arena</span>
         </div>
       </header>
 
-      {/* ══════════════════════════════════════════════
-          MAIN CARD — current activity (card stays fixed, content fades)
-      ══════════════════════════════════════════════ */}
-      <div className="relative z-20 flex-1 flex items-stretch justify-center px-4 py-2 overflow-hidden">
-        <div className="flex" style={{ width: "100%", maxWidth: "clamp(300px, 88vw, 700px)" }}>
-          <MainCard
-            activity={current}
-            prevActivity={activities[prevIdx]}
-            nextActivity={activities[nextIdx]}
-            onPrev={() => go(prevIdx)}
-            onNext={() => go(nextIdx)}
-            fallback={fallback}
-          />
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════
-          THUMBNAIL STRIP — all 18 activities
-      ══════════════════════════════════════════════ */}
-      <div className="relative z-30 flex-none pb-1">
+      {/* ══ FAN CAROUSEL ══ */}
+      {/*
+        Strategy: a relative container, overflow visible.
+        All three cards are absolute, anchored to the horizontal center.
+        Center card: left=50%, translateX(-50%) → perfectly centered.
+        Left card:   left=50%, translateX(-50% - gap - ?) → pushed left.
+        Right card:  left=50%, translateX(-50% + cardWidth + gap) → pushed right.
+        We implement the fan offset through CSS custom classes since
+        Framer Motion handles transitions, CSS handles final positions.
+      */}
+      <div className="relative z-20 flex-1 flex items-end justify-center" style={{ paddingBottom: "clamp(8px,2svh,24px)" }}>
         <div
-          ref={stripRef}
-          className="flex gap-2 px-3 overflow-x-auto"
+          className="relative"
           style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-            WebkitOverflowScrolling: "touch",
+            width: "100%",
+            height: "clamp(240px, 50svh, 640px)",
           }}
         >
-          {activities.map((act, i) => (
-            <motion.button
-              key={act.id}
-              onClick={() => go(i)}
-              className="flex-none flex flex-col items-center gap-1"
-              style={{ minWidth: "clamp(48px, 13vw, 72px)" }}
-              whileTap={{ scale: 0.93 }}
+
+          {/* LEFT CARD */}
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={prevAct.id + "-L"}
+              className="absolute"
+              style={{ left: "50%", bottom: 0, transformOrigin: "bottom center", zIndex: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              onClick={() => go(idx - 1)}
             >
               <div
-                className="w-full rounded-lg overflow-hidden"
                 style={{
-                  height: "clamp(48px, 11vw, 72px)",
-                  border: i === currentIndex
-                    ? `2px solid ${C.purpleBright}`
-                    : "2px solid rgba(255,255,255,0.1)",
-                  boxShadow: i === currentIndex
-                    ? `0 0 12px ${C.purple}`
-                    : "none",
-                  transition: "border 0.3s, box-shadow 0.3s",
-                  opacity: i === currentIndex ? 1 : 0.55,
+                  transform: "translateX(calc(-50% - clamp(90px, 26vw, 210px))) translateY(clamp(10px,3svh,40px)) rotate(-15deg)",
+                  transformOrigin: "bottom center",
+                  cursor: "pointer",
                 }}
               >
-                <img
-                  src={act.cardImageUrl || fallback}
-                  alt={act.name}
-                  className="w-full h-full object-cover"
-                />
+                <SideCard activity={prevAct} />
               </div>
-              <span
-                className="text-center font-medium leading-tight text-white/70 line-clamp-2"
+            </motion.div>
+          </AnimatePresence>
+
+          {/* RIGHT CARD */}
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={nextAct.id + "-R"}
+              className="absolute"
+              style={{ left: "50%", bottom: 0, transformOrigin: "bottom center", zIndex: 2 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              onClick={() => go(idx + 1)}
+            >
+              <div
                 style={{
-                  fontSize: "clamp(7px, 1.8vw, 10px)",
-                  color: i === currentIndex ? C.purpleBright : "rgba(255,255,255,0.5)",
-                  transition: "color 0.3s",
-                  maxWidth: "100%",
+                  transform: "translateX(calc(-50% + clamp(90px, 26vw, 210px))) translateY(clamp(10px,3svh,40px)) rotate(15deg)",
+                  transformOrigin: "bottom center",
+                  cursor: "pointer",
                 }}
               >
-                {act.name}
-              </span>
-            </motion.button>
-          ))}
+                <SideCard activity={nextAct} />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* CENTER CARD */}
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={act.id + "-C"}
+              className="absolute"
+              style={{ left: "50%", bottom: 0, zIndex: 3 }}
+              initial={{ opacity: 0, scale: 0.88, y: 30, x: "-50%" }}
+              animate={{ opacity: 1, scale: 1,  y: 0,  x: "-50%" }}
+              exit={{ opacity: 0, scale: 0.88,  y: 30, x: "-50%" }}
+              transition={{ type: "spring", stiffness: 220, damping: 26 }}
+            >
+              <CenterCard activity={act} onNext={() => go(idx + 1)} />
+            </motion.div>
+          </AnimatePresence>
+
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          FOOTER — age badge + terms
-      ══════════════════════════════════════════════ */}
-      <footer className="relative z-30 flex-none flex flex-col items-center gap-1.5 pb-3 px-4">
-        <div className="flex items-center gap-3">
-          {/* Age badge */}
-          <div
-            className="font-black text-white px-4 py-1 rounded-xl"
-            style={{
-              fontSize: "clamp(13px,4.5vw,20px)",
-              background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
-              boxShadow: `0 0 16px ${C.purple}80`,
-            }}
-          >
-            {current.ageLimit}+
-          </div>
-          {/* Terms short */}
-          <p className="text-white/50 text-center" style={{ fontSize: "clamp(9px,2.2vw,12px)", maxWidth: "clamp(200px,65vw,380px)" }}>
-            {current.termsAndConditions || settings.footer_text}
-          </p>
+      {/* ══ PROGRESS DOTS ══ */}
+      <div className="relative z-30 flex-none flex items-center justify-center gap-[5px] py-2">
+        {activities.map((_, i) => {
+          const active = i === idx;
+          return (
+            <motion.button
+              key={i}
+              onClick={() => go(i)}
+              animate={{ width: active ? "clamp(22px,6vw,40px)" : "clamp(5px,1.5vw,8px)", opacity: active ? 1 : 0.3 }}
+              transition={{ duration: 0.28 }}
+              style={{
+                height: "clamp(5px,1.2vw,8px)",
+                borderRadius: 999,
+                background: active ? `linear-gradient(90deg,${C.purple},${C.pink})` : "rgba(255,255,255,0.55)",
+                border: "none",
+                padding: 0,
+                flexShrink: 0,
+                cursor: "pointer",
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* ══ FOOTER ══ */}
+      <footer className="relative z-30 flex-none flex flex-col items-center gap-1 pb-4">
+        {/* Age badge */}
+        <div
+          className="font-black text-white rounded-xl"
+          style={{
+            fontSize: "clamp(17px,5.5vw,28px)",
+            padding: "clamp(3px,1vw,6px) clamp(14px,4vw,22px)",
+            background: `linear-gradient(135deg,${C.purple},${C.pink})`,
+            boxShadow: `0 0 22px ${C.purple}90`,
+          }}
+        >
+          {act.ageLimit || 18}+
         </div>
+        {/* Terms / companion rule */}
+        <p
+          className="text-center text-white/50"
+          style={{ fontSize: "clamp(10px,2.4vw,13px)", maxWidth: "clamp(200px,68vw,380px)", lineHeight: 1.4 }}
+        >
+          {act.termsAndConditions || settings.footer_text || "By continuing you agree to the Terms and Conditions."}
+        </p>
       </footer>
     </div>
   );
 }
 
-/* ──────────────────────────────────────────────────────────────
-   MAIN CARD — tall portrait card, fills available height
-   Image dominates upper section, rules/CTA at bottom
-────────────────────────────────────────────────────────────── */
-function MainCard({
+/* ─── CENTER CARD ──────────────────────────────────────────── */
+function CenterCard({
   activity,
-  prevActivity,
-  nextActivity,
-  onPrev,
   onNext,
-  fallback,
 }: {
-  activity: Activity;
-  prevActivity: Activity;
-  nextActivity: Activity;
-  onPrev: () => void;
+  activity: { id: number; name: string; cardImageUrl?: string|null; heroImageUrl?: string|null; ctaText?: string|null };
   onNext: () => void;
-  fallback: string;
 }) {
-  const img = activity.heroImageUrl || activity.cardImageUrl || fallback;
-
+  const img = activity.cardImageUrl || activity.heroImageUrl || `https://picsum.photos/seed/${activity.id}/400/560`;
   return (
     <div
-      className="relative w-full flex-1 rounded-2xl overflow-hidden flex flex-col"
       style={{
-        border: `1.5px solid rgba(168,85,247,0.5)`,
-        boxShadow: `0 0 80px -10px rgba(124,58,237,0.7), 0 4px 40px rgba(0,0,0,0.8)`,
-        background: "#0a0812",
-        minHeight: 0,
+        width: "clamp(185px, 54vw, 360px)",
+        height: "clamp(250px, 50svh, 580px)",
+        borderRadius: "clamp(14px,3.5vw,24px)",
+        overflow: "hidden",
+        position: "relative",
+        border: "2px solid rgba(168,85,247,0.75)",
+        boxShadow: `0 16px 70px rgba(124,58,237,0.55), 0 4px 24px rgba(0,0,0,0.7)`,
       }}
     >
-      {/* ── Hero Image fills flex-1 ── */}
-      <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-        <AnimatePresence mode="sync">
-          <motion.img
-            key={activity.id + "-img"}
-            src={img}
-            alt={activity.name}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectPosition: "center top" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-          />
-        </AnimatePresence>
-
-        {/* Dark gradient at bottom for legibility */}
-        <div className="absolute inset-0" style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(10,8,18,0.0) 35%, rgba(10,8,18,0.98) 100%)"
-        }} />
-
-        {/* Prev / Next invisible tap zones */}
-        <button
-          onClick={onPrev}
-          className="absolute left-0 top-0 bottom-0"
-          style={{ width: "25%", zIndex: 5, background: "transparent" }}
-          aria-label={`Previous: ${prevActivity.name}`}
-        />
+      <img src={img} alt={activity.name} className="w-full h-full object-cover" />
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(to bottom, transparent 35%, rgba(8,5,20,0.97) 100%)" }}
+      />
+      <div className="absolute bottom-0 inset-x-0 flex flex-col items-center gap-2" style={{ padding: "clamp(10px,3vw,20px)" }}>
+        <h3
+          className="font-black text-white text-center leading-tight"
+          style={{ fontSize: "clamp(17px,5.5vw,30px)", textShadow: "0 2px 10px rgba(0,0,0,0.9)" }}
+        >
+          {activity.name}
+        </h3>
         <button
           onClick={onNext}
-          className="absolute right-0 top-0 bottom-0"
-          style={{ width: "25%", zIndex: 5, background: "transparent" }}
-          aria-label={`Next: ${nextActivity.name}`}
-        />
-
-        {/* Activity name overlaid on image */}
-        <div className="absolute bottom-0 inset-x-0 z-4 px-4 pb-2">
-          <h2
-            className="font-black text-white leading-tight drop-shadow-xl text-center"
-            style={{
-              fontSize: "clamp(22px,6vw,48px)",
-              textShadow: `0 0 30px ${C.purple}`,
-            }}
-          >
-            {activity.name}
-          </h2>
-        </div>
-      </div>
-
-      {/* ── Info Panel ── */}
-      <AnimatePresence mode="wait">
-      <motion.div
-        key={activity.id + "-info"}
-        className="flex-none px-4 pt-3 pb-3 flex flex-col gap-2"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.35 }}
-      >
-        {/* Description */}
-        <p className="text-white/55 leading-snug text-center line-clamp-2" style={{ fontSize: "clamp(11px,2.8vw,15px)" }}>
-          {activity.shortDescription}
-        </p>
-
-        {/* Rules box */}
-        <div
-          className="rounded-xl px-3 py-2 flex flex-col gap-1.5"
+          className="font-semibold text-white"
           style={{
-            background: "rgba(124,58,237,0.14)",
-            border: "1px solid rgba(168,85,247,0.3)",
+            fontSize: "clamp(11px,3vw,15px)",
+            padding: "clamp(5px,1.4vw,9px) clamp(16px,5vw,28px)",
+            borderRadius: "clamp(8px,2vw,14px)",
+            background: "rgba(255,255,255,0.12)",
+            border: "1px solid rgba(255,255,255,0.38)",
+            backdropFilter: "blur(6px)",
+            cursor: "pointer",
           }}
         >
-          {/* Age */}
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="flex-none text-yellow-400" style={{ width: "clamp(12px,3vw,16px)", height: "clamp(12px,3vw,16px)" }} />
-            <span className="font-bold text-yellow-300" style={{ fontSize: "clamp(11px,2.8vw,14px)" }}>
-              Minimum Age: {activity.ageLimit}+
-            </span>
-          </div>
-          {/* Companion policy */}
-          {activity.termsAndConditions && (
-            <div className="flex items-start gap-2">
-              <Users className="flex-none mt-0.5 text-purple-300" style={{ width: "clamp(12px,3vw,16px)", height: "clamp(12px,3vw,16px)" }} />
-              <span className="text-purple-200/75 leading-snug" style={{ fontSize: "clamp(10px,2.3vw,13px)" }}>
-                <span className="font-semibold text-purple-300">Companion: </span>
-                {activity.termsAndConditions}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* CTA */}
-        <button
-          className="w-full font-black text-white rounded-2xl uppercase tracking-widest"
-          style={{
-            fontSize: "clamp(13px,3.5vw,20px)",
-            padding: "clamp(10px,2.5vw,16px) 0",
-            background: `linear-gradient(135deg, ${C.purple} 0%, ${C.pink} 100%)`,
-            boxShadow: `0 4px 28px ${C.purple}90`,
-            border: "none",
-            letterSpacing: "0.12em",
-          }}
-        >
-          {activity.ctaText || "Explore Now"} ›
+          {activity.ctaText || "Explore Now"} ▾
         </button>
-      </motion.div>
-      </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SIDE CARD ────────────────────────────────────────────── */
+function SideCard({
+  activity,
+}: {
+  activity: { id: number; name: string; cardImageUrl?: string|null; heroImageUrl?: string|null };
+}) {
+  const img = activity.cardImageUrl || activity.heroImageUrl || `https://picsum.photos/seed/${activity.id}/300/420`;
+  return (
+    <div
+      style={{
+        width: "clamp(130px, 37vw, 250px)",
+        height: "clamp(180px, 38svh, 420px)",
+        borderRadius: "clamp(12px,3vw,20px)",
+        overflow: "hidden",
+        position: "relative",
+        border: "1px solid rgba(168,85,247,0.35)",
+        boxShadow: "0 6px 28px rgba(0,0,0,0.65)",
+      }}
+    >
+      <img src={img} alt={activity.name} className="w-full h-full object-cover" />
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(to bottom, transparent 42%, rgba(8,5,20,0.93) 100%)" }}
+      />
+      <div className="absolute bottom-0 inset-x-0 px-2 pb-2 text-center">
+        <p
+          className="font-bold text-white leading-tight"
+          style={{ fontSize: "clamp(11px,3.2vw,17px)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}
+        >
+          {activity.name}
+        </p>
+      </div>
     </div>
   );
 }
