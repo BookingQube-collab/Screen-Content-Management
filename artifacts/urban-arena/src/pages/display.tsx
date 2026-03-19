@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings }            from "@/hooks/use-app-settings";
 import { motion, AnimatePresence }   from "framer-motion";
-import { Loader2, Play }              from "lucide-react";
+import { Loader2 }                    from "lucide-react";
 
 const PURPLE = "#7C3AED";
 const PINK   = "#EC4899";
@@ -52,24 +52,47 @@ export default function DisplayPage() {
     >
 
       {/* ══════════════════════════════════════════════
-          TOP 80% — full-bleed image + text overlay
+          TOP 80% — full-bleed video (if set) or image + text overlay
       ══════════════════════════════════════════════ */}
       <div className="relative overflow-hidden">
 
-        {/* Hero image — crossfades on activity change */}
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={act.id + "-img"}
-            src={img}
-            alt={act.name}
+        {/* Hero video — plays full-bleed when a video URL is set for this activity */}
+        {act.heroVideoUrl ? (
+          <video
+            key={act.id + "-vid"}
+            src={act.heroVideoUrl}
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: "brightness(1.0) saturate(1.4) contrast(1.05)" }}
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.55 }}
+            style={{ filter: "brightness(0.85) saturate(1.3)" }}
+            autoPlay muted playsInline preload="auto"
+            onEnded={() => go(idx + 1)}
           />
-        </AnimatePresence>
+        ) : (
+          /* Hero image — crossfades on activity change */
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={act.id + "-img"}
+              src={img}
+              alt={act.name}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: "brightness(1.0) saturate(1.4) contrast(1.05)" }}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.55 }}
+            />
+          </AnimatePresence>
+        )}
+
+        {/* LIVE badge — shown in top-left when video is playing */}
+        {act.heroVideoUrl && (
+          <div
+            className="absolute top-3 left-4 flex items-center gap-1.5 font-black z-10"
+            style={{ background: PINK, borderRadius: 4, padding: "3px 10px", fontSize: "clamp(8px,1vw,13px)", color: "#fff", letterSpacing: "0.12em" }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "lp 1.2s infinite" }} />
+            LIVE
+          </div>
+        )}
 
         {/* Right-side text backdrop — subtle dark gradient behind the text area */}
         <div
@@ -198,96 +221,49 @@ export default function DisplayPage() {
       </div>
 
       {/* ══════════════════════════════════════════════
-          BOTTOM 20% — stats bar (left) + media (right)
-          Two columns: stats 50% | media 50%
+          BOTTOM 20% — stats bar + next item
       ══════════════════════════════════════════════ */}
       <div
         className="flex"
         style={{ background: DARK, borderTop: "1px solid rgba(168,85,247,0.25)" }}
       >
 
-        {/* ── Stats (left 40%) ── */}
-        <div className="flex items-stretch" style={{ width: "40%" }}>
+        {/* ── Stats — flex: 1, fills all space except Next Item ── */}
+        <div className="flex items-stretch" style={{ flex: 1 }}>
           <StatCell num={`${act.ageLimit || 18}`} unit="+"       label="Min Age" />
           <StatCell num={String(idx + 1).padStart(2, "0")} unit={`/${count}`} label="Activity" />
           <StatCell num={act.heroVideoUrl ? "LIVE" : "OPEN"} unit="" label="Status" accent={!!act.heroVideoUrl} />
         </div>
 
-        {/* ── Media panels (right 60%) ── */}
-        <div className="flex" style={{ flex: 1 }}>
-
-          {/* Video / image panel — full height, no heart */}
-          <div className="relative overflow-hidden" style={{ flex: 1, background: "#111" }}>
-            {act.heroVideoUrl ? (
-              <video
-                key={act.id}
-                src={act.heroVideoUrl}
-                className="w-full h-full object-cover"
-                style={{ filter: "brightness(0.60) saturate(1.6)" }}
-                autoPlay muted playsInline preload="auto"
-                onEnded={() => go(idx + 1)}
-              />
-            ) : (
-              <img
-                src={img}
-                alt=""
-                className="w-full h-full object-cover"
-                style={{ filter: "brightness(0.48) saturate(1.6)" }}
-              />
-            )}
-            {/* pink tint */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: `${PINK}44`, mixBlendMode: "multiply" }} />
-            {/* play button */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div
-                className="rounded-full flex items-center justify-center"
-                style={{ width: "clamp(24px,4vw,50px)", height: "clamp(24px,4vw,50px)", background: "rgba(255,255,255,0.92)" }}
-              >
-                <Play fill={PINK} color={PINK} style={{ width: "40%", height: "40%", marginLeft: "8%" }} />
-              </div>
-            </div>
-            {/* LIVE badge */}
-            {act.heroVideoUrl && (
-              <div
-                className="absolute top-1 left-1 flex items-center gap-1 font-black"
-                style={{ background: PINK, borderRadius: 3, padding: "1px 6px", fontSize: "clamp(6px,0.85vw,10px)", color: "#fff", letterSpacing: "0.1em" }}
-              >
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "lp 1.2s infinite" }} />
-                LIVE
-              </div>
-            )}
-          </div>
-
-          {/* Next Item */}
+        {/* ── Next Item panel ── */}
+        <div
+          className="relative overflow-hidden cursor-pointer flex-none"
+          style={{ width: "clamp(90px,14vw,170px)", background: PURPLE }}
+          onClick={() => go(idx + 1)}
+        >
+          <img
+            src={nextImg}
+            alt={nextAct.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: "brightness(0.48) saturate(1.4)" }}
+          />
+          <div className="absolute inset-0" style={{ background: `${PURPLE}66` }} />
           <div
-            className="relative overflow-hidden cursor-pointer flex-none"
-            style={{ width: "clamp(70px,12vw,145px)", background: PURPLE }}
-            onClick={() => go(idx + 1)}
+            className="absolute inset-0 flex flex-col items-center justify-end text-center"
+            style={{ padding: "clamp(4px,0.8vw,12px)" }}
           >
-            <img
-              src={nextImg}
-              alt={nextAct.name}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: "brightness(0.48) saturate(1.4)" }}
-            />
-            <div className="absolute inset-0" style={{ background: `${PURPLE}66` }} />
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-end text-center"
-              style={{ padding: "clamp(4px,0.8vw,12px)" }}
+            <p
+              className="font-semibold uppercase"
+              style={{ fontSize: "clamp(6px,0.8vw,10px)", color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em", marginBottom: 2 }}
             >
-              <p
-                className="font-semibold uppercase"
-                style={{ fontSize: "clamp(6px,0.8vw,10px)", color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em", marginBottom: 2 }}
-              >
-                Next Item
-              </p>
-              <p
-                className="font-bold text-white leading-snug"
-                style={{ fontSize: "clamp(7px,1vw,13px)" }}
-              >
-                {nextAct.name}
-              </p>
-            </div>
+              Next Item
+            </p>
+            <p
+              className="font-bold text-white leading-snug"
+              style={{ fontSize: "clamp(7px,1vw,13px)" }}
+            >
+              {nextAct.name}
+            </p>
           </div>
         </div>
       </div>
