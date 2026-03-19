@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, Play, ArrowRight } from "lucide-react";
 
-/* ─── Brand colours ─────────────────────────────────────────── */
 const C = {
   bg:           "#0A0812",
   purple:       "#7C3AED",
@@ -22,15 +21,14 @@ export default function DisplayPage() {
     setIdx(((next % activities.length) + activities.length) % activities.length);
   };
 
-  /*
-   * Auto-slide timer — only active for activities WITHOUT a video.
-   * Activities WITH a video use onEnded to advance automatically.
-   */
   useEffect(() => {
     if (!settings.auto_slide || !activities || activities.length <= 1) return;
     const act = activities[idx];
-    if (act?.heroVideoUrl) return; // video controls its own advancement
-    const id = setInterval(() => setIdx(p => (p + 1) % activities.length), settings.slide_interval * 1000);
+    if (act?.heroVideoUrl) return;
+    const id = setInterval(
+      () => setIdx(p => (p + 1) % activities.length),
+      settings.slide_interval * 1000
+    );
     return () => clearInterval(id);
   }, [settings.auto_slide, settings.slide_interval, activities, idx]);
 
@@ -43,7 +41,10 @@ export default function DisplayPage() {
   }
   if (!activities || activities.length === 0) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center text-white text-3xl font-black" style={{ background: C.bg }}>
+      <div
+        className="fixed inset-0 flex items-center justify-center text-white text-3xl font-black"
+        style={{ background: C.bg }}
+      >
         NO SIGNAL
       </div>
     );
@@ -51,324 +52,366 @@ export default function DisplayPage() {
 
   const count   = activities.length;
   const act     = activities[idx];
-  const prevAct = activities[(idx - 1 + count) % count];
   const nextAct = activities[(idx + 1) % count];
-  const bgImg   = act.heroImageUrl || act.cardImageUrl || "";
+  const img     = act.heroImageUrl || act.cardImageUrl
+    || `https://picsum.photos/seed/${act.id}/800/1200`;
+  const nextImg = nextAct.heroImageUrl || nextAct.cardImageUrl
+    || `https://picsum.photos/seed/${nextAct.id}/400/300`;
 
   return (
     <div
-      className="fixed inset-0 overflow-hidden select-none text-white flex flex-col"
-      style={{ background: C.bg, fontFamily: "system-ui, sans-serif" }}
+      className="fixed inset-0 overflow-hidden select-none text-white"
+      style={{
+        background: C.bg,
+        fontFamily: "system-ui, sans-serif",
+        display: "grid",
+        gridTemplateRows: "1fr auto",
+      }}
     >
-
-      {/* ══ FULL-BLEED BACKGROUND — image layer ══ */}
-      <AnimatePresence mode="sync">
+      {/* ══ MAIN CONTENT AREA ══ */}
+      <AnimatePresence mode="wait">
         <motion.div
-          key={act.id + "-bg"}
-          className="absolute inset-0 z-0"
+          key={act.id}
+          className="overflow-hidden"
+          style={{ display: "grid", gridTemplateColumns: "55% 45%" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
+          transition={{ duration: 0.55 }}
         >
-          {bgImg && (
-            <img
-              src={bgImg}
-              alt=""
-              className="w-full h-full object-cover"
-              style={{ filter: "brightness(0.5) saturate(1.7)" }}
+          {/* ── LEFT: Full-bleed hero image ── */}
+          <div
+            className="relative overflow-hidden"
+            style={{
+              background: `linear-gradient(140deg, ${C.purple}99 0%, ${C.bg} 100%)`,
+            }}
+          >
+            {img && (
+              <img
+                src={img}
+                alt={act.name}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: "brightness(0.78) saturate(1.5)" }}
+              />
+            )}
+            {/* Vignette + purple tint */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `
+                  linear-gradient(to right, rgba(124,58,237,0.22) 0%, transparent 70%),
+                  linear-gradient(to top, rgba(10,8,18,0.65) 0%, transparent 55%)
+                `,
+              }}
             />
-          )}
-          <div className="absolute inset-0" style={{
-            background: `
-              radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,58,237,0.6) 0%, transparent 60%),
-              linear-gradient(to bottom, rgba(10,8,18,0.3) 0%, rgba(10,8,18,0.1) 40%, rgba(10,8,18,0.9) 100%)
-            `
-          }} />
+            {/* Scanlines */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `repeating-linear-gradient(
+                  0deg,
+                  transparent,
+                  transparent 2px,
+                  rgba(100,0,200,0.04) 2px,
+                  rgba(100,0,200,0.04) 4px
+                )`,
+              }}
+            />
+          </div>
+
+          {/* ── RIGHT: Info panel ── */}
+          <div
+            className="relative flex flex-col overflow-hidden"
+            style={{
+              background: `linear-gradient(160deg, rgba(124,58,237,0.32) 0%, rgba(10,8,18,0.97) 55%)`,
+              borderLeft: `1px solid rgba(168,85,247,0.22)`,
+            }}
+          >
+            {/* Watermark — activity name fills the right panel */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={act.id + "-wm"}
+                  className="font-black uppercase leading-none whitespace-nowrap"
+                  style={{
+                    fontSize: "clamp(48px,10vw,120px)",
+                    letterSpacing: "0.04em",
+                    background:
+                      "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(236,72,153,0.09) 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    marginLeft: "-4%",
+                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {act.name}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+
+            {/* Text content */}
+            <div
+              className="relative flex flex-col flex-1"
+              style={{ padding: "clamp(18px,3.5vh,44px) clamp(18px,2.8vw,40px) 0" }}
+            >
+              {/* Age badge */}
+              <div style={{ marginBottom: "clamp(10px,1.5vh,18px)" }}>
+                <span
+                  className="font-black text-white rounded-lg inline-block"
+                  style={{
+                    fontSize: "clamp(11px,1.4vw,18px)",
+                    padding: "3px 14px",
+                    background: `linear-gradient(135deg,${C.purple},${C.pink})`,
+                    boxShadow: `0 0 18px ${C.purple}70`,
+                  }}
+                >
+                  {act.ageLimit || 18}+
+                </span>
+              </div>
+
+              {/* Activity name */}
+              <AnimatePresence mode="wait">
+                <motion.h1
+                  key={act.id + "-title"}
+                  className="font-black text-white leading-tight"
+                  style={{
+                    fontSize: "clamp(22px,4.5vw,56px)",
+                    marginBottom: "clamp(8px,1.2vh,16px)",
+                  }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.38 }}
+                >
+                  {act.name}
+                </motion.h1>
+              </AnimatePresence>
+
+              {/* Description */}
+              {act.description && (
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={act.id + "-desc"}
+                    className="text-white/65 leading-relaxed"
+                    style={{
+                      fontSize: "clamp(11px,1.4vw,17px)",
+                      maxWidth: "34ch",
+                      marginBottom: "clamp(10px,1.8vh,22px)",
+                    }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.38, delay: 0.06 }}
+                  >
+                    {act.description}
+                  </motion.p>
+                </AnimatePresence>
+              )}
+
+              {/* CTA button */}
+              <div style={{ marginBottom: "auto" }}>
+                <button
+                  className="font-bold text-white flex items-center gap-2"
+                  style={{
+                    fontSize: "clamp(11px,1.3vw,16px)",
+                    padding: "clamp(6px,1.2vh,12px) clamp(14px,2vw,24px)",
+                    borderRadius: "clamp(8px,1.5vw,14px)",
+                    background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
+                    boxShadow: `0 6px 28px ${C.purple}60`,
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => go(idx + 1)}
+                >
+                  {act.ctaText || "Book Now"}
+                  <ArrowRight style={{ width: "1em", height: "1em" }} />
+                </button>
+              </div>
+
+              {/* ── Bottom two panels ── */}
+              <div
+                className="flex gap-[2px] mt-auto"
+                style={{ height: "clamp(90px,20vh,190px)" }}
+              >
+                {/* Video / media panel */}
+                <div
+                  className="flex-1 relative overflow-hidden"
+                  style={{ background: "rgba(0,0,0,0.75)" }}
+                >
+                  {act.heroVideoUrl ? (
+                    <video
+                      key={act.id}
+                      src={act.heroVideoUrl}
+                      className="w-full h-full object-cover"
+                      style={{ filter: "brightness(0.58)" }}
+                      autoPlay
+                      muted
+                      playsInline
+                      preload="auto"
+                      onEnded={() => go(idx + 1)}
+                    />
+                  ) : (
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      style={{ filter: "brightness(0.52) saturate(1.5)" }}
+                    />
+                  )}
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div
+                      className="rounded-full flex items-center justify-center"
+                      style={{
+                        width: "clamp(28px,4.5vw,52px)",
+                        height: "clamp(28px,4.5vw,52px)",
+                        background: "rgba(255,255,255,0.88)",
+                      }}
+                    >
+                      <Play
+                        fill={C.purple}
+                        color={C.purple}
+                        style={{ width: "42%", height: "42%", marginLeft: "8%" }}
+                      />
+                    </div>
+                  </div>
+                  {/* "Live" label */}
+                  {act.heroVideoUrl && (
+                    <div
+                      className="absolute top-2 left-2 flex items-center gap-1"
+                      style={{
+                        background: "rgba(236,72,153,0.88)",
+                        borderRadius: "4px",
+                        padding: "2px 8px",
+                        fontSize: "clamp(8px,1vw,11px)",
+                        fontWeight: 700,
+                        color: "#fff",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "#fff",
+                          animation: "pulse 1.2s infinite",
+                        }}
+                      />
+                      LIVE
+                    </div>
+                  )}
+                </div>
+
+                {/* Next activity panel */}
+                <div
+                  className="relative overflow-hidden flex flex-col justify-end cursor-pointer"
+                  style={{
+                    width: "clamp(70px,13vw,150px)",
+                    background: "rgba(0,0,0,0.88)",
+                    padding: "clamp(8px,1.5vw,14px)",
+                  }}
+                  onClick={() => go(idx + 1)}
+                >
+                  {nextImg && (
+                    <img
+                      src={nextImg}
+                      alt={nextAct.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ filter: "brightness(0.42) saturate(1.3)" }}
+                    />
+                  )}
+                  <div className="relative z-10">
+                    <p
+                      className="text-white/50 font-semibold uppercase"
+                      style={{
+                        fontSize: "clamp(7px,0.9vw,10px)",
+                        letterSpacing: "0.1em",
+                        marginBottom: 3,
+                      }}
+                    >
+                      Next
+                    </p>
+                    <p
+                      className="text-white font-bold leading-snug"
+                      style={{ fontSize: "clamp(9px,1.1vw,13px)" }}
+                    >
+                      {nextAct.name}
+                    </p>
+                    <ArrowRight
+                      className="mt-1"
+                      style={{
+                        width: "clamp(12px,1.8vw,18px)",
+                        height: "clamp(12px,1.8vw,18px)",
+                        color: C.purpleBright,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* ══ VIDEO LAYER — auto-plays immediately; onEnded advances to next ══ */}
-      {act.heroVideoUrl && (
-        <motion.div
-          key={act.id + "-video"}
-          className="absolute inset-0 pointer-events-none"
-          style={{ zIndex: 1 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.0 }}
+      {/* ══ BOTTOM BAR ══ */}
+      <div
+        className="flex items-center"
+        style={{
+          background: "rgba(10,8,18,0.96)",
+          borderTop: `1px solid rgba(168,85,247,0.22)`,
+          minHeight: "clamp(44px,8vh,68px)",
+          padding: "0 clamp(14px,2vw,32px)",
+          gap: "clamp(12px,3vw,40px)",
+        }}
+      >
+        {/* Terms / companion policy */}
+        <p
+          className="text-white/45 flex-1"
+          style={{ fontSize: "clamp(9px,1.1vw,13px)", lineHeight: 1.4 }}
         >
-          <video
-            key={act.id}
-            src={act.heroVideoUrl}
-            className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.45) saturate(1.6)" }}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onEnded={() => go(idx + 1)}
-          />
-          <div className="absolute inset-0" style={{
-            background: `
-              radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,58,237,0.55) 0%, transparent 60%),
-              linear-gradient(to bottom, rgba(10,8,18,0.25) 0%, rgba(10,8,18,0.1) 40%, rgba(10,8,18,0.88) 100%)
-            `
-          }} />
-        </motion.div>
-      )}
+          {act.termsAndConditions ||
+            settings.footer_text ||
+            "Companion policy applies. Refer to kiosk staff for details."}
+        </p>
 
-      {/* Scanlines */}
-      <div className="absolute inset-0 z-0 pointer-events-none" style={{
-        background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(100,0,200,0.03) 2px, rgba(100,0,200,0.03) 4px)`,
-      }} />
-
-      {/* ══ ACTIVITY NAME WATERMARK ══ */}
-      <div className="absolute inset-x-0 top-[2%] z-10 pointer-events-none text-center overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={act.id + "-wm"}
-            className="font-black uppercase leading-none"
-            style={{
-              fontSize: "clamp(44px, 19vw, 180px)",
-              letterSpacing: "0.05em",
-              background: "linear-gradient(135deg, rgba(168,85,247,0.55) 0%, rgba(236,72,153,0.35) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              display: "block",
-            }}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.5 }}
-          >
-            {act.name}
-          </motion.span>
-        </AnimatePresence>
-      </div>
-
-
-      {/* ══ FAN CAROUSEL ══ */}
-      {/*
-        Strategy: a relative container, overflow visible.
-        All three cards are absolute, anchored to the horizontal center.
-        Center card: left=50%, translateX(-50%) → perfectly centered.
-        Left card:   left=50%, translateX(-50% - gap - ?) → pushed left.
-        Right card:  left=50%, translateX(-50% + cardWidth + gap) → pushed right.
-        We implement the fan offset through CSS custom classes since
-        Framer Motion handles transitions, CSS handles final positions.
-      */}
-      <div className="relative z-20 flex-1 flex items-end justify-center" style={{ paddingBottom: "clamp(8px,2svh,24px)" }}>
-        <div
-          className="relative"
-          style={{
-            width: "100%",
-            height: "clamp(240px, 50svh, 640px)",
-          }}
-        >
-
-          {/* LEFT CARD */}
-          <AnimatePresence mode="popLayout">
-            <motion.div
-              key={prevAct.id + "-L"}
-              className="absolute"
-              style={{ left: "50%", bottom: 0, transformOrigin: "bottom center", zIndex: 1 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              onClick={() => go(idx - 1)}
-            >
-              <div
+        {/* Progress dots */}
+        <div className="flex items-center gap-[4px] flex-shrink-0">
+          {activities.map((_, i) => {
+            const active = i === idx;
+            return (
+              <motion.button
+                key={i}
+                onClick={() => go(i)}
+                animate={{
+                  width: active ? "clamp(16px,3.5vw,30px)" : "clamp(4px,0.9vw,7px)",
+                  opacity: active ? 1 : 0.3,
+                }}
+                transition={{ duration: 0.26 }}
                 style={{
-                  transform: "translateX(calc(-50% - clamp(90px, 26vw, 210px))) translateY(clamp(10px,3svh,40px)) rotate(-15deg)",
-                  transformOrigin: "bottom center",
+                  height: "clamp(4px,0.9vw,7px)",
+                  borderRadius: 999,
+                  background: active
+                    ? `linear-gradient(90deg,${C.purple},${C.pink})`
+                    : "rgba(255,255,255,0.5)",
+                  border: "none",
+                  padding: 0,
+                  flexShrink: 0,
                   cursor: "pointer",
                 }}
-              >
-                <SideCard activity={prevAct} />
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* RIGHT CARD */}
-          <AnimatePresence mode="popLayout">
-            <motion.div
-              key={nextAct.id + "-R"}
-              className="absolute"
-              style={{ left: "50%", bottom: 0, transformOrigin: "bottom center", zIndex: 2 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              onClick={() => go(idx + 1)}
-            >
-              <div
-                style={{
-                  transform: "translateX(calc(-50% + clamp(90px, 26vw, 210px))) translateY(clamp(10px,3svh,40px)) rotate(15deg)",
-                  transformOrigin: "bottom center",
-                  cursor: "pointer",
-                }}
-              >
-                <SideCard activity={nextAct} />
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* CENTER CARD */}
-          <AnimatePresence mode="popLayout">
-            <motion.div
-              key={act.id + "-C"}
-              className="absolute"
-              style={{ left: "50%", bottom: 0, zIndex: 3 }}
-              initial={{ opacity: 0, scale: 0.88, y: 30, x: "-50%" }}
-              animate={{ opacity: 1, scale: 1,  y: 0,  x: "-50%" }}
-              exit={{ opacity: 0, scale: 0.88,  y: 30, x: "-50%" }}
-              transition={{ type: "spring", stiffness: 220, damping: 26 }}
-            >
-              <CenterCard activity={act} onNext={() => go(idx + 1)} />
-            </motion.div>
-          </AnimatePresence>
-
+              />
+            );
+          })}
         </div>
       </div>
 
-      {/* ══ PROGRESS DOTS ══ */}
-      <div className="relative z-30 flex-none flex items-center justify-center gap-[5px] py-2">
-        {activities.map((_, i) => {
-          const active = i === idx;
-          return (
-            <motion.button
-              key={i}
-              onClick={() => go(i)}
-              animate={{ width: active ? "clamp(22px,6vw,40px)" : "clamp(5px,1.5vw,8px)", opacity: active ? 1 : 0.3 }}
-              transition={{ duration: 0.28 }}
-              style={{
-                height: "clamp(5px,1.2vw,8px)",
-                borderRadius: 999,
-                background: active ? `linear-gradient(90deg,${C.purple},${C.pink})` : "rgba(255,255,255,0.55)",
-                border: "none",
-                padding: 0,
-                flexShrink: 0,
-                cursor: "pointer",
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* ══ FOOTER ══ */}
-      <footer className="relative z-30 flex-none flex flex-col items-center gap-1 pb-4">
-        {/* Age badge */}
-        <div
-          className="font-black text-white rounded-xl"
-          style={{
-            fontSize: "clamp(17px,5.5vw,28px)",
-            padding: "clamp(3px,1vw,6px) clamp(14px,4vw,22px)",
-            background: `linear-gradient(135deg,${C.purple},${C.pink})`,
-            boxShadow: `0 0 22px ${C.purple}90`,
-          }}
-        >
-          {act.ageLimit || 18}+
-        </div>
-        {/* Terms / companion rule */}
-        <p
-          className="text-center text-white/50"
-          style={{ fontSize: "clamp(10px,2.4vw,13px)", maxWidth: "clamp(200px,68vw,380px)", lineHeight: 1.4 }}
-        >
-          {act.termsAndConditions || settings.footer_text || "By continuing you agree to the Terms and Conditions."}
-        </p>
-      </footer>
-    </div>
-  );
-}
-
-/* ─── CENTER CARD ──────────────────────────────────────────── */
-function CenterCard({
-  activity,
-  onNext,
-}: {
-  activity: { id: number; name: string; cardImageUrl?: string|null; heroImageUrl?: string|null; ctaText?: string|null };
-  onNext: () => void;
-}) {
-  const img = activity.cardImageUrl || activity.heroImageUrl || `https://picsum.photos/seed/${activity.id}/400/560`;
-  return (
-    <div
-      style={{
-        width: "clamp(185px, 54vw, 360px)",
-        height: "clamp(250px, 50svh, 580px)",
-        borderRadius: "clamp(14px,3.5vw,24px)",
-        overflow: "hidden",
-        position: "relative",
-        border: "2px solid rgba(168,85,247,0.75)",
-        boxShadow: `0 16px 70px rgba(124,58,237,0.55), 0 4px 24px rgba(0,0,0,0.7)`,
-      }}
-    >
-      <img src={img} alt={activity.name} className="w-full h-full object-cover" />
-      <div
-        className="absolute inset-0"
-        style={{ background: "linear-gradient(to bottom, transparent 35%, rgba(8,5,20,0.97) 100%)" }}
-      />
-      <div className="absolute bottom-0 inset-x-0 flex flex-col items-center gap-2" style={{ padding: "clamp(10px,3vw,20px)" }}>
-        <h3
-          className="font-black text-white text-center leading-tight"
-          style={{ fontSize: "clamp(17px,5.5vw,30px)", textShadow: "0 2px 10px rgba(0,0,0,0.9)" }}
-        >
-          {activity.name}
-        </h3>
-        <button
-          onClick={onNext}
-          className="font-semibold text-white"
-          style={{
-            fontSize: "clamp(11px,3vw,15px)",
-            padding: "clamp(5px,1.4vw,9px) clamp(16px,5vw,28px)",
-            borderRadius: "clamp(8px,2vw,14px)",
-            background: "rgba(255,255,255,0.12)",
-            border: "1px solid rgba(255,255,255,0.38)",
-            backdropFilter: "blur(6px)",
-            cursor: "pointer",
-          }}
-        >
-          {activity.ctaText || "Explore Now"} ▾
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ─── SIDE CARD ────────────────────────────────────────────── */
-function SideCard({
-  activity,
-}: {
-  activity: { id: number; name: string; cardImageUrl?: string|null; heroImageUrl?: string|null };
-}) {
-  const img = activity.cardImageUrl || activity.heroImageUrl || `https://picsum.photos/seed/${activity.id}/300/420`;
-  return (
-    <div
-      style={{
-        width: "clamp(130px, 37vw, 250px)",
-        height: "clamp(180px, 38svh, 420px)",
-        borderRadius: "clamp(12px,3vw,20px)",
-        overflow: "hidden",
-        position: "relative",
-        border: "1px solid rgba(168,85,247,0.35)",
-        boxShadow: "0 6px 28px rgba(0,0,0,0.65)",
-      }}
-    >
-      <img src={img} alt={activity.name} className="w-full h-full object-cover" />
-      <div
-        className="absolute inset-0"
-        style={{ background: "linear-gradient(to bottom, transparent 42%, rgba(8,5,20,0.93) 100%)" }}
-      />
-      <div className="absolute bottom-0 inset-x-0 px-2 pb-2 text-center">
-        <p
-          className="font-bold text-white leading-tight"
-          style={{ fontSize: "clamp(11px,3.2vw,17px)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}
-        >
-          {activity.name}
-        </p>
-      </div>
+      {/* Pulse keyframe */}
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
     </div>
   );
 }
