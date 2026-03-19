@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings }            from "@/hooks/use-app-settings";
 import { motion, AnimatePresence }   from "framer-motion";
@@ -16,6 +16,19 @@ export default function DisplayPage() {
   const go = (next: number) => {
     if (!activities) return;
     setIdx(((next % activities.length) + activities.length) % activities.length);
+  };
+
+  const touchStartX = useRef<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(delta) > 50) go(idx + (delta < 0 ? 1 : -1));
+    touchStartX.current = null;
   };
 
   useEffect(() => {
@@ -53,8 +66,13 @@ export default function DisplayPage() {
 
       {/* ══════════════════════════════════════════════
           TOP 80% — full-bleed video (if set) or image + text overlay
+          Touch-swipe left/right to navigate between activities
       ══════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden">
+      <div
+        className="relative overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
 
         {/* Hero video — plays full-bleed when a video URL is set for this activity */}
         {act.heroVideoUrl ? (
