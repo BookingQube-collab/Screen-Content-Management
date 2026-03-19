@@ -1,338 +1,413 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity } from "@workspace/api-client-react";
-import { Loader2, BarChart2 } from "lucide-react";
+import { Loader2, Users, AlertTriangle } from "lucide-react";
+
+/* ─── Brand colours (Urban Arena purple/neon) ─────────────────── */
+const C = {
+  bg:          "#0A0812",
+  purpleDark:  "#3B0764",
+  purple:      "#7C3AED",
+  purpleBright:"#A855F7",
+  pink:        "#EC4899",
+  neonBlue:    "#38BDF8",
+  white:       "#FFFFFF",
+};
 
 export default function DisplayPage() {
   const { data: activities, isLoading: isLoadingAct } = useListDisplayActivities();
   const { settings, isLoading: isLoadingSet } = useAppSettings();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  const stripRef = useRef<HTMLDivElement>(null);
 
   const go = (idx: number) => {
     setDirection(idx > currentIndex ? 1 : -1);
     setCurrentIndex(idx);
   };
 
+  /* Auto-slide */
   useEffect(() => {
     if (!settings.auto_slide || !activities || activities.length <= 1) return;
     const id = setInterval(() => {
       setDirection(1);
-      setCurrentIndex((prev) => (prev + 1) % activities.length);
+      setCurrentIndex(prev => (prev + 1) % activities.length);
     }, settings.slide_interval * 1000);
     return () => clearInterval(id);
   }, [settings.auto_slide, settings.slide_interval, activities]);
 
+  /* Keep active thumbnail in view */
+  useEffect(() => {
+    if (!stripRef.current || !activities) return;
+    const thumb = stripRef.current.children[currentIndex] as HTMLElement;
+    if (thumb) thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [currentIndex, activities]);
+
   if (isLoadingAct || isLoadingSet) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-red-500 animate-spin" />
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: C.bg }}>
+        <Loader2 className="w-12 h-12 animate-spin" style={{ color: C.purpleBright }} />
       </div>
     );
   }
 
   if (!activities || activities.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center text-white text-2xl font-bold">
+      <div className="fixed inset-0 flex items-center justify-center text-white text-2xl font-bold" style={{ background: C.bg }}>
         NO SIGNAL
       </div>
     );
   }
 
-  const count = activities.length;
-  const current = activities[currentIndex];
-  const prevIdx = (currentIndex - 1 + count) % count;
-  const nextIdx = (currentIndex + 1) % count;
-  const prev = activities[prevIdx];
-  const next = activities[nextIdx];
-
-  const heroUrl =
-    current.heroImageUrl ||
-    current.cardImageUrl ||
-    `${import.meta.env.BASE_URL}images/bg-abstract-red.png`;
+  const count      = activities.length;
+  const current    = activities[currentIndex];
+  const prevIdx    = (currentIndex - 1 + count) % count;
+  const nextIdx    = (currentIndex + 1) % count;
+  const fallback   = `${import.meta.env.BASE_URL}images/placeholder-vr.png`;
+  const heroUrl    = current.heroImageUrl || current.cardImageUrl || fallback;
 
   return (
-    <div className="fixed inset-0 overflow-hidden select-none cursor-none text-white">
-
-      {/* ═══════════════════════════════════════════════
-          BACKGROUND — full-bleed hero with gradient
-      ═══════════════════════════════════════════════ */}
+    <div
+      className="fixed inset-0 overflow-hidden select-none cursor-none text-white flex flex-col"
+      style={{ background: C.bg }}
+    >
+      {/* ══════════════════════════════════════════════
+          BACKGROUND — blurred hero for current activity
+      ══════════════════════════════════════════════ */}
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id + "-bg"}
           className="absolute inset-0 z-0"
-          initial={{ opacity: 0, scale: 1.06 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
+          transition={{ duration: 1.2 }}
         >
-          <img
-            src={heroUrl}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          {/* darken bottom for card readability, keep top visible */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/85" />
+          <img src={heroUrl} alt="" className="w-full h-full object-cover" style={{ filter: "blur(8px) brightness(0.25) saturate(1.8)" }} />
         </motion.div>
       </AnimatePresence>
 
-      {/* ═══════════════════════════════════════════════
-          EXPLORE WATERMARK — prominent, behind header
-          Uses absolute left:50% + translateX(-50%) so the
-          text is always centred; overflow clips both sides.
-      ═══════════════════════════════════════════════ */}
-      {/*
-       * EXPLORE watermark — centered, bold, slightly transparent.
-       * font-size is tuned so "EXPLORE" (7 chars) fills ~90-95% of
-       * the viewport width, so text-align:center naturally centres it.
-       */}
-      <div className="absolute top-[4%] inset-x-0 z-10 pointer-events-none text-center">
-        <span
-          className="font-black uppercase leading-none select-none"
-          style={{
-            fontSize: "clamp(46px, 19.5vw, 185px)",
-            color: "rgba(165,10,10,0.52)",
-            letterSpacing: "0.08em",
-          }}
-        >
+      {/* Purple scanline overlay */}
+      <div className="absolute inset-0 z-0 pointer-events-none" style={{
+        background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139,46,217,0.04) 2px, rgba(139,46,217,0.04) 4px)`,
+      }} />
+
+      {/* ══════════════════════════════════════════════
+          EXPLORE WATERMARK
+      ══════════════════════════════════════════════ */}
+      <div className="absolute top-[3%] inset-x-0 z-10 pointer-events-none text-center overflow-hidden">
+        <span className="font-black uppercase leading-none select-none" style={{
+          fontSize: "clamp(46px, 19.5vw, 185px)",
+          background: `linear-gradient(135deg, rgba(168,85,247,0.35) 0%, rgba(236,72,153,0.25) 100%)`,
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          letterSpacing: "0.08em",
+          display: "block",
+        }}>
           {settings.overlay_heading || "EXPLORE"}
         </span>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          HEADER — logo + brand name
-      ═══════════════════════════════════════════════ */}
-      <header className="absolute top-0 inset-x-0 z-30 flex justify-center items-center pt-4 pb-2">
-        <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-2xl">
+      {/* ══════════════════════════════════════════════
+          HEADER
+      ══════════════════════════════════════════════ */}
+      <header className="relative z-30 flex-none flex justify-center items-center py-3">
+        <div className="flex items-center gap-2 px-5 py-2 rounded-2xl" style={{
+          background: "rgba(124,58,237,0.18)",
+          border: "1px solid rgba(168,85,247,0.35)",
+          backdropFilter: "blur(8px)",
+        }}>
+          {/* Neon bar-chart icon */}
           <div className="flex items-end gap-[2px]">
-            <span className="w-[6px] h-[14px] rounded-sm bg-gradient-to-b from-orange-400 to-red-600" />
-            <span className="w-[6px] h-[20px] rounded-sm bg-gradient-to-b from-orange-400 to-red-600" />
-            <span className="w-[6px] h-[10px] rounded-sm bg-gradient-to-b from-orange-400 to-red-600" />
+            <span className="w-[5px] h-[13px] rounded-sm" style={{ background: `linear-gradient(to bottom, #EC4899, ${C.purple})` }} />
+            <span className="w-[5px] h-[19px] rounded-sm" style={{ background: `linear-gradient(to bottom, #EC4899, ${C.purple})` }} />
+            <span className="w-[5px] h-[9px] rounded-sm"  style={{ background: `linear-gradient(to bottom, #EC4899, ${C.purple})` }} />
           </div>
-          <span className="text-[clamp(14px,4.5vw,22px)] font-bold text-white tracking-wide">
-            Urban Arena
-          </span>
+          <span className="font-bold text-white" style={{ fontSize: "clamp(14px,4vw,20px)" }}>Urban Arena</span>
         </div>
       </header>
 
-      {/* ═══════════════════════════════════════════════
-          FAN CAROUSEL — cards at bottom of screen
-      ═══════════════════════════════════════════════ */}
-      {/*
-       * The carousel sits in the lower portion of the screen.
-       * Cards share a common bottom anchor; side cards rotate outward
-       * (rotateZ) like a hand of playing cards.
-       * Tapping a side card advances the carousel to that activity.
-       */}
-      <div
-        className="absolute inset-x-0 z-20"
-        style={{
-          bottom: "calc(15% + 12px)",
-          height: "clamp(240px, 42svh, 580px)",
-        }}
-      >
-        {count === 1 ? (
-          /* single activity — center card only */
-          <FanCard activity={current} position="center" onClick={() => {}} />
-        ) : (
-          <>
-            {/* LEFT card */}
-            <AnimatePresence>
-              <motion.div
-                key={"left-" + prevIdx}
-                className="absolute bottom-0 cursor-pointer"
-                style={{
-                  left: "8%",
-                  transformOrigin: "bottom center",
-                }}
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.4 }}
-                onClick={() => go(prevIdx)}
-              >
-                <FanCard activity={prev} position="left" onClick={() => go(prevIdx)} />
-              </motion.div>
-            </AnimatePresence>
-
-            {/* CENTER card */}
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                key={"center-" + currentIndex}
-                className="absolute bottom-0"
-                style={{ left: "50%", x: "-50%", zIndex: 30 }}
-                initial={{ opacity: 0, y: direction > 0 ? 40 : -40, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: direction > 0 ? -40 : 40, scale: 0.9 }}
-                transition={{ duration: 0.5, type: "spring", bounce: 0.25 }}
-              >
-                <FanCard activity={current} position="center" onClick={() => {}} />
-              </motion.div>
-            </AnimatePresence>
-
-            {/* RIGHT card */}
-            <AnimatePresence>
-              <motion.div
-                key={"right-" + nextIdx}
-                className="absolute bottom-0 cursor-pointer"
-                style={{
-                  right: "8%",
-                  transformOrigin: "bottom center",
-                }}
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 30 }}
-                transition={{ duration: 0.4 }}
-                onClick={() => go(nextIdx)}
-              >
-                <FanCard activity={next} position="right" onClick={() => go(nextIdx)} />
-              </motion.div>
-            </AnimatePresence>
-          </>
-        )}
+      {/* ══════════════════════════════════════════════
+          MAIN CARD — current activity
+      ══════════════════════════════════════════════ */}
+      <div className="relative z-20 flex-1 flex items-stretch justify-center px-4 py-2 overflow-hidden">
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            key={current.id}
+            initial={{ opacity: 0, x: direction * 60, scale: 0.92 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: direction * -60, scale: 0.92 }}
+            transition={{ duration: 0.5, type: "spring", bounce: 0.22 }}
+            className="flex"
+            style={{ width: "100%", maxWidth: "clamp(300px, 88vw, 700px)" }}
+          >
+            <MainCard
+              activity={current}
+              prevActivity={activities[prevIdx]}
+              nextActivity={activities[nextIdx]}
+              onPrev={() => go(prevIdx)}
+              onNext={() => go(nextIdx)}
+              fallback={fallback}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          FOOTER — progress + age + terms
-      ═══════════════════════════════════════════════ */}
-      <footer
-        className="absolute bottom-0 inset-x-0 z-30 flex flex-col items-center gap-2 pb-4"
-        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
-      >
-        {/* Progress indicator */}
-        <div className="flex items-center gap-1.5 w-[60%] max-w-xs">
-          {activities.map((_, i) => (
-            <motion.div
-              key={i}
-              layout
-              onClick={() => go(i)}
-              className="cursor-pointer rounded-full bg-white"
-              style={{
-                height: 4,
-                flex: i === currentIndex ? 3 : 1,
-                opacity: i === currentIndex ? 1 : 0.35,
-                backgroundColor: i === currentIndex ? "#e53535" : "white",
-              }}
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-            />
-          ))}
-        </div>
-
-        {/* Age badge — solid red, square-ish */}
+      {/* ══════════════════════════════════════════════
+          THUMBNAIL STRIP — all 18 activities
+      ══════════════════════════════════════════════ */}
+      <div className="relative z-30 flex-none pb-1">
         <div
-          className="px-5 py-1.5 rounded-xl font-black text-white"
+          ref={stripRef}
+          className="flex gap-2 px-3 overflow-x-auto"
           style={{
-            fontSize: "clamp(14px, 5vw, 22px)",
-            background: "#e53535",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
           }}
         >
-          {current.ageLimit}+
+          {activities.map((act, i) => (
+            <motion.button
+              key={act.id}
+              onClick={() => go(i)}
+              className="flex-none flex flex-col items-center gap-1"
+              style={{ minWidth: "clamp(48px, 13vw, 72px)" }}
+              whileTap={{ scale: 0.93 }}
+            >
+              <div
+                className="w-full rounded-lg overflow-hidden"
+                style={{
+                  height: "clamp(48px, 11vw, 72px)",
+                  border: i === currentIndex
+                    ? `2px solid ${C.purpleBright}`
+                    : "2px solid rgba(255,255,255,0.1)",
+                  boxShadow: i === currentIndex
+                    ? `0 0 12px ${C.purple}`
+                    : "none",
+                  transition: "border 0.3s, box-shadow 0.3s",
+                  opacity: i === currentIndex ? 1 : 0.55,
+                }}
+              >
+                <img
+                  src={act.cardImageUrl || fallback}
+                  alt={act.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span
+                className="text-center font-medium leading-tight text-white/70 line-clamp-2"
+                style={{
+                  fontSize: "clamp(7px, 1.8vw, 10px)",
+                  color: i === currentIndex ? C.purpleBright : "rgba(255,255,255,0.5)",
+                  transition: "color 0.3s",
+                  maxWidth: "100%",
+                }}
+              >
+                {act.name}
+              </span>
+            </motion.button>
+          ))}
         </div>
+      </div>
 
-        {/* Terms */}
-        <p className="text-white/50 text-[10px] sm:text-xs text-center px-6 leading-tight">
-          {current.termsAndConditions || settings.footer_text}
-        </p>
+      {/* ══════════════════════════════════════════════
+          FOOTER — age badge + terms
+      ══════════════════════════════════════════════ */}
+      <footer className="relative z-30 flex-none flex flex-col items-center gap-1.5 pb-3 px-4">
+        <div className="flex items-center gap-3">
+          {/* Age badge */}
+          <div
+            className="font-black text-white px-4 py-1 rounded-xl"
+            style={{
+              fontSize: "clamp(13px,4.5vw,20px)",
+              background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
+              boxShadow: `0 0 16px ${C.purple}80`,
+            }}
+          >
+            {current.ageLimit}+
+          </div>
+          {/* Terms short */}
+          <p className="text-white/50 text-center" style={{ fontSize: "clamp(9px,2.2vw,12px)", maxWidth: "clamp(200px,65vw,380px)" }}>
+            {current.termsAndConditions || settings.footer_text}
+          </p>
+        </div>
       </footer>
     </div>
   );
 }
 
-/* ────────────────────────────────────────────────────────────
-   FAN CARD
-   Position drives the visual style:
-   - "center"  → upright, full content, red border glow
-   - "left"    → rotated CW by 15°, shifted up 8%, dimmed
-   - "right"   → rotated CCW by 15°, shifted up 8%, dimmed
-──────────────────────────────────────────────────────────── */
-function FanCard({
+/* ──────────────────────────────────────────────────────────────
+   MAIN CARD — tall portrait card, fills available height
+   Image dominates upper section, rules/CTA at bottom
+────────────────────────────────────────────────────────────── */
+function MainCard({
   activity,
-  position,
-  onClick,
+  prevActivity,
+  nextActivity,
+  onPrev,
+  onNext,
+  fallback,
 }: {
   activity: Activity;
-  position: "left" | "center" | "right";
-  onClick: () => void;
+  prevActivity: Activity;
+  nextActivity: Activity;
+  onPrev: () => void;
+  onNext: () => void;
+  fallback: string;
 }) {
-  const fallback = `${import.meta.env.BASE_URL}images/placeholder-vr.png`;
-
-  const isCenter = position === "center";
-
-  const cardStyle: React.CSSProperties = {
-    /* Height drives sizing → width from aspect-ratio */
-    height: isCenter ? "clamp(220px, 40svh, 520px)" : "clamp(170px, 31svh, 400px)",
-    aspectRatio: "3 / 4",
-    borderRadius: isCenter ? 20 : 16,
-    overflow: "hidden",
-    position: "relative",
-    transform: isCenter
-      ? "none"
-      : position === "left"
-      ? "rotate(-14deg) translateY(8%)"
-      : "rotate(14deg) translateY(8%)",
-    transformOrigin: "bottom center",
-    boxShadow: isCenter
-      ? "0 8px 60px -10px rgba(229,53,53,0.6), 0 2px 20px rgba(0,0,0,0.6)"
-      : "0 4px 20px rgba(0,0,0,0.5)",
-    border: isCenter ? "2px solid rgba(229,53,53,0.7)" : "1.5px solid rgba(255,255,255,0.12)",
-    opacity: isCenter ? 1 : 0.82,
-    cursor: isCenter ? "default" : "pointer",
-  };
+  const img = activity.heroImageUrl || activity.cardImageUrl || fallback;
 
   return (
-    <div style={cardStyle} onClick={onClick}>
-      {/* Hero image */}
-      <img
-        src={activity.cardImageUrl || fallback}
-        alt={activity.name}
-        className="absolute inset-0 w-full h-full object-cover"
-      />
+    <div
+      className="relative w-full flex-1 rounded-2xl overflow-hidden flex flex-col"
+      style={{
+        border: `1.5px solid rgba(168,85,247,0.5)`,
+        boxShadow: `0 0 80px -10px rgba(124,58,237,0.7), 0 4px 40px rgba(0,0,0,0.8)`,
+        background: "#0a0812",
+        minHeight: 0,
+      }}
+    >
+      {/* ── Hero Image fills flex-1 ── */}
+      <div className="relative flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+        <img
+          src={img}
+          alt={activity.name}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: "center top" }}
+        />
 
-      {/* Gradient overlay — stronger at bottom for text */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        {/* Dark gradient at bottom for legibility */}
+        <div className="absolute inset-0" style={{
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(10,8,18,0.0) 35%, rgba(10,8,18,0.98) 100%)"
+        }} />
 
-      {/* Card content */}
-      <div className="absolute inset-0 p-[6%] flex flex-col justify-end">
-        {isCenter && activity.isFeatured && (
+        {/* Featured badge */}
+        {activity.isFeatured && (
           <div
-            className="self-start mb-1 px-2 py-0.5 text-white font-bold uppercase tracking-wider rounded"
-            style={{ fontSize: "clamp(8px,2vw,11px)", background: "#e53535" }}
+            className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full font-bold uppercase tracking-widest text-white"
+            style={{
+              fontSize: "clamp(9px,2vw,12px)",
+              background: `linear-gradient(90deg, ${C.purple}, ${C.pink})`,
+              boxShadow: `0 0 14px ${C.purple}`,
+              zIndex: 3,
+            }}
           >
-            Featured
+            ★ Featured
           </div>
         )}
 
-        <h2
-          className="font-bold leading-tight text-white"
-          style={{ fontSize: isCenter ? "clamp(15px,4vw,28px)" : "clamp(12px,3vw,18px)" }}
+        {/* Prev / Next tap zones */}
+        <button
+          onClick={onPrev}
+          className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-2"
+          style={{ width: "22%", zIndex: 5, background: "transparent" }}
         >
-          {activity.name}
-        </h2>
-
-        {isCenter && (
-          <>
-            <p
-              className="text-white/70 mt-0.5 mb-3 line-clamp-2"
-              style={{ fontSize: "clamp(10px,2.5vw,14px)" }}
-            >
-              {activity.shortDescription}
-            </p>
-            <div
-              className="w-full text-center font-bold text-white rounded-xl uppercase tracking-wide"
+          <div className="flex flex-col items-center gap-1">
+            <img
+              src={prevActivity.cardImageUrl || fallback}
+              alt={prevActivity.name}
+              className="object-cover rounded-xl opacity-70 hover:opacity-100"
               style={{
-                fontSize: "clamp(11px,3vw,16px)",
-                padding: "clamp(8px,2svh,14px) 0",
-                background: "rgba(255,255,255,0.15)",
-                border: "1.5px solid rgba(255,255,255,0.35)",
-                backdropFilter: "blur(4px)",
+                width: "clamp(40px,10vw,68px)",
+                height: "clamp(40px,10vw,68px)",
+                border: `1px solid rgba(168,85,247,0.5)`,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.6)",
               }}
-            >
-              {activity.ctaText || "Explore Now"} ›
+            />
+            <span className="text-white/50 text-center leading-tight" style={{ fontSize: "clamp(7px,1.8vw,10px)", maxWidth: "clamp(40px,10vw,68px)" }}>
+              ‹ {prevActivity.name}
+            </span>
+          </div>
+        </button>
+
+        <button
+          onClick={onNext}
+          className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-2"
+          style={{ width: "22%", zIndex: 5, background: "transparent" }}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <img
+              src={nextActivity.cardImageUrl || fallback}
+              alt={nextActivity.name}
+              className="object-cover rounded-xl opacity-70 hover:opacity-100"
+              style={{
+                width: "clamp(40px,10vw,68px)",
+                height: "clamp(40px,10vw,68px)",
+                border: `1px solid rgba(168,85,247,0.5)`,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.6)",
+              }}
+            />
+            <span className="text-white/50 text-center leading-tight" style={{ fontSize: "clamp(7px,1.8vw,10px)", maxWidth: "clamp(40px,10vw,68px)" }}>
+              {nextActivity.name} ›
+            </span>
+          </div>
+        </button>
+
+        {/* Activity name overlaid on image */}
+        <div className="absolute bottom-0 inset-x-0 z-4 px-4 pb-2">
+          <h2
+            className="font-black text-white leading-tight drop-shadow-xl text-center"
+            style={{
+              fontSize: "clamp(22px,6vw,48px)",
+              textShadow: `0 0 30px ${C.purple}`,
+            }}
+          >
+            {activity.name}
+          </h2>
+        </div>
+      </div>
+
+      {/* ── Info Panel ── */}
+      <div className="flex-none px-4 pt-3 pb-3 flex flex-col gap-2">
+        {/* Description */}
+        <p className="text-white/55 leading-snug text-center line-clamp-2" style={{ fontSize: "clamp(11px,2.8vw,15px)" }}>
+          {activity.shortDescription}
+        </p>
+
+        {/* Rules box */}
+        <div
+          className="rounded-xl px-3 py-2 flex flex-col gap-1.5"
+          style={{
+            background: "rgba(124,58,237,0.14)",
+            border: "1px solid rgba(168,85,247,0.3)",
+          }}
+        >
+          {/* Age */}
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="flex-none text-yellow-400" style={{ width: "clamp(12px,3vw,16px)", height: "clamp(12px,3vw,16px)" }} />
+            <span className="font-bold text-yellow-300" style={{ fontSize: "clamp(11px,2.8vw,14px)" }}>
+              Minimum Age: {activity.ageLimit}+
+            </span>
+          </div>
+          {/* Companion policy */}
+          {activity.termsAndConditions && (
+            <div className="flex items-start gap-2">
+              <Users className="flex-none mt-0.5 text-purple-300" style={{ width: "clamp(12px,3vw,16px)", height: "clamp(12px,3vw,16px)" }} />
+              <span className="text-purple-200/75 leading-snug" style={{ fontSize: "clamp(10px,2.3vw,13px)" }}>
+                <span className="font-semibold text-purple-300">Companion: </span>
+                {activity.termsAndConditions}
+              </span>
             </div>
-          </>
-        )}
+          )}
+        </div>
+
+        {/* CTA */}
+        <button
+          className="w-full font-black text-white rounded-2xl uppercase tracking-widest"
+          style={{
+            fontSize: "clamp(13px,3.5vw,20px)",
+            padding: "clamp(10px,2.5vw,16px) 0",
+            background: `linear-gradient(135deg, ${C.purple} 0%, ${C.pink} 100%)`,
+            boxShadow: `0 4px 28px ${C.purple}90`,
+            border: "none",
+            letterSpacing: "0.12em",
+          }}
+        >
+          {activity.ctaText || "Explore Now"} ›
+        </button>
       </div>
     </div>
   );
