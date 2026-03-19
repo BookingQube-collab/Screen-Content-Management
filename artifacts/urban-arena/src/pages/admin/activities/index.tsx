@@ -66,16 +66,14 @@ export default function AdminActivities() {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-wrap gap-4 justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold">Manage Activities</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Manage Activities</h1>
           <p className="text-muted-foreground mt-1">Control what appears on the kiosk displays.</p>
         </div>
-        <Link href="/admin/activities/new">
-          <a className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all">
-            <Plus className="w-5 h-5" />
-            Add Activity
-          </a>
+        <Link href="/admin/activities/new" className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all whitespace-nowrap">
+          <Plus className="w-5 h-5" />
+          Add Activity
         </Link>
       </div>
 
@@ -89,8 +87,8 @@ export default function AdminActivities() {
             </div>
             <h3 className="text-xl font-medium mb-2">No activities yet</h3>
             <p className="text-muted-foreground mb-6">Create your first activity to show on the display.</p>
-            <Link href="/admin/activities/new">
-              <a className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium">Create Activity</a>
+            <Link href="/admin/activities/new" className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium">
+              Create Activity
             </Link>
           </div>
         ) : (
@@ -155,10 +153,8 @@ export default function AdminActivities() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/admin/activities/${activity.id}/edit`}>
-                          <a className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                          </a>
+                        <Link href={`/admin/activities/${activity.id}/edit`} className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                          <Edit2 className="w-4 h-4" />
                         </Link>
                         <button 
                           onClick={() => handleDelete(activity.id)}

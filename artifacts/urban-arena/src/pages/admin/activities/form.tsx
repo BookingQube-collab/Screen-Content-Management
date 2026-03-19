@@ -107,8 +107,8 @@ export default function AdminActivityForm() {
     <AdminLayout>
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/admin/activities">
-            <a className="p-2 rounded-lg hover:bg-secondary transition-colors"><ArrowLeft className="w-5 h-5" /></a>
+          <Link href="/admin/activities" className="p-2 rounded-lg hover:bg-secondary transition-colors">
+            <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
             <h1 className="text-3xl font-display font-bold">{isEdit ? "Edit Activity" : "New Activity"}</h1>
@@ -217,9 +217,7 @@ export default function AdminActivityForm() {
                 {isSaving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
                 {isEdit ? "Save Changes" : "Create Activity"}
               </Button>
-              <Link href="/admin/activities">
-                <Button type="button" variant="outline" className="w-full">Cancel</Button>
-              </Link>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setLocation("/admin/activities")}>Cancel</Button>
             </div>
           </div>
         </div>
