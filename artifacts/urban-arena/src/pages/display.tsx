@@ -168,24 +168,6 @@ export default function DisplayPage() {
         </AnimatePresence>
       </div>
 
-      {/* ══ LOGO ══ */}
-      <header className="relative z-30 flex-none flex justify-center pt-3 pb-1">
-        <div
-          className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl"
-          style={{
-            background: "rgba(124,58,237,0.25)",
-            border: "1px solid rgba(168,85,247,0.45)",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <div className="flex items-end gap-[3px]">
-            <span className="w-[5px] h-[11px] rounded-sm" style={{ background: `linear-gradient(to top,${C.purple},${C.pink})` }} />
-            <span className="w-[5px] h-[17px] rounded-sm" style={{ background: `linear-gradient(to top,${C.purple},${C.pink})` }} />
-            <span className="w-[5px] h-[8px]  rounded-sm" style={{ background: `linear-gradient(to top,${C.purple},${C.pink})` }} />
-          </div>
-          <span className="font-bold text-white" style={{ fontSize: "clamp(14px,4vw,22px)" }}>Urban Arena</span>
-        </div>
-      </header>
 
       {/* ══ FAN CAROUSEL ══ */}
       {/*
