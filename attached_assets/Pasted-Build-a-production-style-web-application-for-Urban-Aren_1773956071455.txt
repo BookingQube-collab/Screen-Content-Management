@@ -1,0 +1,336 @@
+Build a production-style web application for Urban Arena with two parts:
+	1.	Public Display App
+	2.	Admin Panel
+
+The application is designed for a 21.5-inch vertical portrait screen kiosk display.
+It must be lightweight, fast, modern, responsive, and easy to manage.
+
+⸻
+
+Core Goal
+
+Create a media-based promotional display system where the admin can upload and manage:
+	•	images
+	•	videos
+	•	activity name
+	•	short description
+	•	age limit
+	•	terms & conditions
+
+The public display should automatically show this content in a premium cinematic UI with:
+	•	bold hero background media
+	•	centered focus cards / slider
+	•	Urban Arena branding
+	•	age restriction badge
+	•	terms and conditions text
+	•	vertical portrait layout optimized for kiosk screen
+
+⸻
+
+Tech Stack Requirements
+
+Use the latest lightweight stable technologies.
+
+Frontend
+	•	Next.js 15 with App Router
+	•	React
+	•	TypeScript
+	•	Tailwind CSS
+	•	Framer Motion for smooth animations
+	•	ShadCN UI for admin components where useful
+
+Backend
+	•	Use Next.js server actions / route handlers
+	•	Keep backend simple and lightweight
+	•	Use Prisma ORM
+
+Database
+	•	PostgreSQL if available on Replit
+	•	If setup becomes heavy, use SQLite first but keep schema Prisma-compatible for PostgreSQL migration
+
+Storage
+	•	Support upload for:
+	•	image files
+	•	video files
+	•	Store files in a simple local uploads folder initially
+	•	Architecture should allow future migration to cloud storage like S3 or Cloudinary
+
+Authentication
+	•	Simple admin login
+	•	Secure session-based authentication
+	•	Only admin users can access admin panel
+
+⸻
+
+Public Display App Requirements
+
+Create a vertical portrait display page, such as:
+
+/display
+
+This page should look premium and modern, inspired by high-end promotional slider UI.
+
+Public Screen UI Layout
+
+Top Section
+	•	Urban Arena logo
+	•	optional large faded background word like “EXPLORE” or dynamic activity name
+	•	glowing cinematic background effect
+
+Hero Background Section
+	•	full-width media background
+	•	can be image or autoplay muted looping video
+	•	should feel like background, not a small card
+	•	overlay with gradient and darkening for readability
+
+Foreground Focus Slider
+	•	3-card or multi-card focus carousel
+	•	center card active and large
+	•	side cards partially visible with scale and perspective
+	•	smooth transitions
+	•	auto-slide every few seconds
+	•	support both image and video thumbnails if possible
+
+Each activity card can show:
+	•	activity name
+	•	short description
+	•	CTA-style button like “Explore Now” or “Learn More”
+
+Footer Section
+	•	age badge like 18+, 16+, 7+, etc.
+	•	terms & conditions text
+	•	clean premium progress indicators / dots / line
+
+Display Behavior
+	•	autoplay slider
+	•	full-screen friendly
+	•	optimized for portrait screen ratio
+	•	minimal CPU usage
+	•	preload media smartly
+	•	graceful fallback if video fails
+	•	no unnecessary heavy effects that slow kiosk performance
+
+⸻
+
+Admin Panel Requirements
+
+Create admin routes like:
+	•	/admin/login
+	•	/admin/dashboard
+	•	/admin/activities
+	•	/admin/activities/new
+	•	/admin/activities/[id]/edit
+
+Admin Features
+
+Admin should be able to:
+
+1. Manage Activities
+Each activity must have:
+	•	activity name
+	•	slug
+	•	short description
+	•	full description
+	•	age limit
+	•	terms & conditions
+	•	active/inactive status
+	•	sort order
+	•	featured flag
+
+2. Upload Media
+For each activity allow:
+	•	hero background image
+	•	hero background video
+	•	slider card image
+	•	optional thumbnail
+	•	file preview before save
+
+3. Control Display Content
+Admin can:
+	•	choose which activities appear on public display
+	•	reorder activities
+	•	mark one as default featured activity
+	•	control autoplay sequence
+
+4. Edit Branding
+Admin should be able to update:
+	•	Urban Arena logo
+	•	brand colors
+	•	footer text
+	•	overlay heading like “EXPLORE”
+
+5. Dashboard Summary
+Show:
+	•	total activities
+	•	active activities
+	•	images uploaded
+	•	videos uploaded
+	•	last updated items
+
+⸻
+
+Database Schema Suggestion
+
+Create a clean schema with tables like:
+
+AdminUser
+	•	id
+	•	email
+	•	passwordHash
+	•	createdAt
+	•	updatedAt
+
+Activity
+	•	id
+	•	name
+	•	slug
+	•	shortDescription
+	•	fullDescription
+	•	ageLimit
+	•	termsAndConditions
+	•	heroImageUrl
+	•	heroVideoUrl
+	•	cardImageUrl
+	•	thumbnailUrl
+	•	isActive
+	•	isFeatured
+	•	sortOrder
+	•	createdAt
+	•	updatedAt
+
+Setting
+	•	id
+	•	key
+	•	value
+	•	createdAt
+	•	updatedAt
+
+⸻
+
+UI/UX Rules
+
+Public Display
+	•	must feel cinematic
+	•	vertical portrait first
+	•	premium red/dark theme by default
+	•	bold background typography
+	•	layered depth
+	•	smooth motion
+	•	clean readability
+	•	avoid clutter
+
+Admin Panel
+	•	simple
+	•	fast
+	•	clean forms
+	•	easy file upload
+	•	easy reorder
+	•	good validation
+	•	lightweight dashboard
+
+⸻
+
+Performance Rules
+	•	keep bundle size small
+	•	avoid bloated dependencies
+	•	optimize images
+	•	lazy load videos
+	•	use server components where possible
+	•	use client components only where interaction is needed
+	•	keep animations smooth but not excessive
+	•	code should be modular and maintainable
+
+⸻
+
+Validation Rules
+	•	activity name required
+	•	age limit required
+	•	either hero image or hero video must exist
+	•	description length validation
+	•	allowed file types only
+	•	file size validation for uploads
+	•	show user-friendly form errors
+
+⸻
+
+Deliverables
+
+Build the full project with:
+	1.	public portrait display page
+	2.	secure admin login
+	3.	admin dashboard
+	4.	activity CRUD
+	5.	media upload support
+	6.	settings/branding management
+	7.	seeded demo content
+	8.	clean folder structure
+	9.	README with setup steps
+	10.	comments only where useful, not excessive
+
+⸻
+
+Folder Structure Expectation
+
+Use a clean scalable structure such as:
+	•	app/
+	•	components/
+	•	lib/
+	•	prisma/
+	•	public/uploads/
+	•	types/
+	•	actions/
+
+⸻
+
+Design Direction
+
+The display UI should follow this style:
+	•	premium entertainment kiosk
+	•	bold red/dark cinematic background
+	•	large integrated background media
+	•	overlapping modern content cards
+	•	glassmorphism only if lightweight
+	•	strong visual hierarchy
+	•	not a basic image gallery
+	•	not a cheap slider
+	•	should look like a polished branded experience
+
+⸻
+
+Important Build Rules
+	•	do not create unnecessary complexity
+	•	do not over-engineer microservices
+	•	keep it lightweight and Replit-friendly
+	•	prioritize working MVP first
+	•	then polish UI
+	•	include demo seed data so app works immediately after setup
+
+⸻
+
+Final Output Needed
+
+Generate:
+	•	full app code
+	•	database schema
+	•	sample seed data
+	•	admin CRUD flows
+	•	upload handling
+	•	polished portrait display UI
+	•	setup instructions
+
+⸻
+
+Extra Requirement
+
+Add a simple toggle in admin panel:
+	•	Display Mode: Image First / Video First / Mixed
+
+And another toggle:
+	•	Auto Slide: On / Off
+
+With setting for:
+	•	slide interval in seconds
+
+⸻
+
+If something is unclear, make sensible engineering decisions and continue building without blocking.

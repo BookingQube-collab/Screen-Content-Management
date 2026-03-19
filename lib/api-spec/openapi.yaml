@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Urban Arena API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: activities
+    description: Activity management
+  - name: settings
+    description: Application settings
+  - name: uploads
+    description: File uploads
 paths:
   /healthz:
     get:
@@ -24,6 +29,283 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [activities]
+      summary: List all activities
+      responses:
+        "200":
+          description: List of activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+
+  /activities/display:
+    get:
+      operationId: listDisplayActivities
+      tags: [activities]
+      summary: List active activities for public display
+      responses:
+        "200":
+          description: List of active activities for display
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+
+  /activities/{id}:
+    get:
+      operationId: getActivity
+      tags: [activities]
+      summary: Get activity by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activity found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateActivity
+      tags: [activities]
+      summary: Update an activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateActivityBody"
+      responses:
+        "200":
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteActivity
+      tags: [activities]
+      summary: Delete an activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /activities/create:
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Create a new activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityBody"
+      responses:
+        "201":
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+
+  /activities/{id}/reorder:
+    patch:
+      operationId: reorderActivity
+      tags: [activities]
+      summary: Update sort order of an activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderActivityBody"
+      responses:
+        "200":
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+
+  /settings:
+    get:
+      operationId: listSettings
+      tags: [settings]
+      summary: Get all settings
+      responses:
+        "200":
+          description: All settings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setting"
+    post:
+      operationId: upsertSetting
+      tags: [settings]
+      summary: Upsert a setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertSettingBody"
+      responses:
+        "200":
+          description: Updated setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+
+  /auth/login:
+    post:
+      operationId: adminLogin
+      tags: [settings]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: adminLogout
+      tags: [settings]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [settings]
+      summary: Get current admin user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /uploads/image:
+    post:
+      operationId: uploadImage
+      tags: [uploads]
+      summary: Upload an image file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Uploaded file URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+
+  /uploads/video:
+    post:
+      operationId: uploadVideo
+      tags: [uploads]
+      summary: Upload a video file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Uploaded file URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +316,222 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        shortDescription:
+          type: ["string", "null"]
+        fullDescription:
+          type: ["string", "null"]
+        ageLimit:
+          type: integer
+        termsAndConditions:
+          type: ["string", "null"]
+        heroImageUrl:
+          type: ["string", "null"]
+        heroVideoUrl:
+          type: ["string", "null"]
+        cardImageUrl:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        isFeatured:
+          type: boolean
+        sortOrder:
+          type: integer
+        ctaText:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - ageLimit
+        - isActive
+        - isFeatured
+        - sortOrder
+        - ctaText
+        - createdAt
+        - updatedAt
+
+    CreateActivityBody:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        shortDescription:
+          type: ["string", "null"]
+        fullDescription:
+          type: ["string", "null"]
+        ageLimit:
+          type: integer
+        termsAndConditions:
+          type: ["string", "null"]
+        heroImageUrl:
+          type: ["string", "null"]
+        heroVideoUrl:
+          type: ["string", "null"]
+        cardImageUrl:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        isFeatured:
+          type: boolean
+        sortOrder:
+          type: integer
+        ctaText:
+          type: string
+      required:
+        - name
+        - slug
+        - ageLimit
+
+    UpdateActivityBody:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        shortDescription:
+          type: ["string", "null"]
+        fullDescription:
+          type: ["string", "null"]
+        ageLimit:
+          type: integer
+        termsAndConditions:
+          type: ["string", "null"]
+        heroImageUrl:
+          type: ["string", "null"]
+        heroVideoUrl:
+          type: ["string", "null"]
+        cardImageUrl:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        isFeatured:
+          type: boolean
+        sortOrder:
+          type: integer
+        ctaText:
+          type: string
+
+    ReorderActivityBody:
+      type: object
+      properties:
+        sortOrder:
+          type: integer
+      required:
+        - sortOrder
+
+    Setting:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        value:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - key
+        - value
+        - createdAt
+        - updatedAt
+
+    UpsertSettingBody:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+      required:
+        - id
+        - email
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/AdminUser"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    UploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        filename:
+          type: string
+      required:
+        - url
+        - filename
