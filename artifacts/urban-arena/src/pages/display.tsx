@@ -243,7 +243,7 @@ export default function DisplayPage() {
         <div className="flex items-stretch" style={{ flex: 1 }}>
           <StatCell num={`${act.ageLimit || 18}`} unit="+"       label="Min Age" />
           <StatCell num={String(idx + 1).padStart(2, "0")} unit={`/${count}`} label="Activity" />
-          <StatCell num={act.heroVideoUrl ? "LIVE" : "OPEN"} unit="" label="Status" accent={!!act.heroVideoUrl} />
+          <StatCell num={act.name} unit="" label="Current Activity" accent />
         </div>
 
         {/* ── Next Item panel ── */}
