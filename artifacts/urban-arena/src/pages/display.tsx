@@ -220,36 +220,6 @@ export default function DisplayPage() {
           </>
         )}
 
-        {/* ── Progress dots (bottom-centre of hero) ── */}
-        <div
-          className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-[5px] z-10"
-        >
-          {activities.map((_, i) => {
-            const active = i === idx;
-            return (
-              <motion.button
-                key={i}
-                onClick={() => go(i)}
-                animate={{
-                  width:   active ? "clamp(18px,3.5vw,32px)" : "clamp(4px,0.8vw,7px)",
-                  opacity: active ? 1 : 0.35,
-                }}
-                transition={{ duration: 0.24 }}
-                style={{
-                  height:       "clamp(4px,0.8vw,7px)",
-                  borderRadius: 999,
-                  background:   active
-                    ? `linear-gradient(90deg,${PURPLE},${PINK})`
-                    : "rgba(255,255,255,0.5)",
-                  border:    "none",
-                  padding:   0,
-                  flexShrink: 0,
-                  cursor:    "pointer",
-                }}
-              />
-            );
-          })}
-        </div>
       </div>
 
       {/* ══════════════════════════════════════════════
