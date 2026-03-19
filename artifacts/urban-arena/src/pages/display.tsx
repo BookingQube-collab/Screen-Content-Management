@@ -112,99 +112,79 @@ export default function DisplayPage() {
           </div>
         )}
 
-        {/* Right-side text backdrop — subtle dark gradient behind the text area */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `
-              linear-gradient(to left, rgba(12,8,32,0.68) 0%, rgba(12,8,32,0.35) 40%, transparent 62%),
-              linear-gradient(to top,  rgba(12,8,32,0.40) 0%, transparent 35%)
-            `,
-          }}
-        />
-        {/* Purple accent glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(ellipse 50% 50% at 80% 15%, ${PURPLE}28 0%, transparent 70%)` }}
-        />
-
-        {/* ── Ghost watermark (right side) ── */}
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={act.id + "-wm"}
-            className="absolute font-black uppercase pointer-events-none leading-none"
-            style={{
-              fontSize:       "clamp(60px,13vw,160px)",
-              letterSpacing:  "0.04em",
-              color:          "rgba(255,255,255,0.07)",
-              right:          "-2%",
-              bottom:         "18%",
-              whiteSpace:     "nowrap",
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {act.name}
-          </motion.span>
-        </AnimatePresence>
-
-        {/* ── Text overlay — right side, vertically centred ── */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={act.id + "-text"}
-            className="absolute flex flex-col justify-center"
-            style={{
-              top:    "10%",
-              bottom: "10%",
-              left:   "50%",
-              right:  "clamp(20px,4vw,60px)",
-            }}
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -16 }}
-            transition={{ duration: 0.4 }}
-          >
-            {/* Activity name */}
-            <h1
-              className="font-black text-white leading-none"
+        {/* ── Text overlay, watermark & gradients — hidden when video is playing ── */}
+        {!act.heroVideoUrl && (
+          <>
+            {/* Right-side text backdrop */}
+            <div
+              className="absolute inset-0 pointer-events-none"
               style={{
-                fontSize:     "clamp(28px,6vw,78px)",
-                marginBottom: "clamp(10px,2%,22px)",
-                textShadow:   "0 4px 24px rgba(0,0,0,0.7)",
+                background: `
+                  linear-gradient(to left, rgba(12,8,32,0.68) 0%, rgba(12,8,32,0.35) 40%, transparent 62%),
+                  linear-gradient(to top,  rgba(12,8,32,0.40) 0%, transparent 35%)
+                `,
               }}
-            >
-              {act.name}
-            </h1>
+            />
+            {/* Purple accent glow */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: `radial-gradient(ellipse 50% 50% at 80% 15%, ${PURPLE}28 0%, transparent 70%)` }}
+            />
 
-            {/* Description */}
-            <p
-              style={{
-                fontSize:     "clamp(11px,1.5vw,19px)",
-                lineHeight:   1.6,
-                color:        "rgba(255,255,255,0.80)",
-                maxWidth:     "32ch",
-                marginBottom: "clamp(10px,2.5%,28px)",
-                textShadow:   "0 2px 10px rgba(0,0,0,0.6)",
-              }}
-            >
-              {act.description ||
-                "An exciting activity that pushes your limits and delivers an unforgettable experience."}
-            </p>
+            {/* Ghost watermark */}
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={act.id + "-wm"}
+                className="absolute font-black uppercase pointer-events-none leading-none"
+                style={{
+                  fontSize:      "clamp(60px,13vw,160px)",
+                  letterSpacing: "0.04em",
+                  color:         "rgba(255,255,255,0.07)",
+                  right:         "-2%",
+                  bottom:        "18%",
+                  whiteSpace:    "nowrap",
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                {act.name}
+              </motion.span>
+            </AnimatePresence>
 
-            {/* Age limit */}
-            <p
-              className="font-bold text-white"
-              style={{
-                fontSize:   "clamp(14px,2.2vw,28px)",
-                textShadow: "0 2px 10px rgba(0,0,0,0.6)",
-              }}
-            >
-              {act.ageLimit || 18}+ Age Limit
-            </p>
-          </motion.div>
-        </AnimatePresence>
+            {/* Text overlay — right side, vertically centred */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={act.id + "-text"}
+                className="absolute flex flex-col justify-center"
+                style={{ top: "10%", bottom: "10%", left: "50%", right: "clamp(20px,4vw,60px)" }}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.4 }}
+              >
+                <h1
+                  className="font-black text-white leading-none"
+                  style={{ fontSize: "clamp(28px,6vw,78px)", marginBottom: "clamp(10px,2%,22px)", textShadow: "0 4px 24px rgba(0,0,0,0.7)" }}
+                >
+                  {act.name}
+                </h1>
+                <p
+                  style={{ fontSize: "clamp(11px,1.5vw,19px)", lineHeight: 1.6, color: "rgba(255,255,255,0.80)", maxWidth: "32ch", marginBottom: "clamp(10px,2.5%,28px)", textShadow: "0 2px 10px rgba(0,0,0,0.6)" }}
+                >
+                  {act.description || "An exciting activity that pushes your limits and delivers an unforgettable experience."}
+                </p>
+                <p
+                  className="font-bold text-white"
+                  style={{ fontSize: "clamp(14px,2.2vw,28px)", textShadow: "0 2px 10px rgba(0,0,0,0.6)" }}
+                >
+                  {act.ageLimit || 18}+ Age Limit
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
 
         {/* ── Progress dots (bottom-centre of hero) ── */}
         <div
