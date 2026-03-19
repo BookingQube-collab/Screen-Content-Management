@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,51 +12,27 @@ const C = {
   pink:         "#EC4899",
 };
 
-const VIDEO_DELAY_MS = 6000; // play video after 6s of viewing an activity
-
 export default function DisplayPage() {
   const { data: activities, isLoading: isLoadingAct } = useListDisplayActivities();
   const { settings, isLoading: isLoadingSet }         = useAppSettings();
-  const [idx, setIdx]             = useState(0);
-  const [videoActive, setVideoActive] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [idx, setIdx] = useState(0);
 
   const go = (next: number) => {
     if (!activities) return;
-    setVideoActive(false);
     setIdx(((next % activities.length) + activities.length) % activities.length);
   };
 
-  /* Auto-slide */
+  /*
+   * Auto-slide timer — only active for activities WITHOUT a video.
+   * Activities WITH a video use onEnded to advance automatically.
+   */
   useEffect(() => {
     if (!settings.auto_slide || !activities || activities.length <= 1) return;
-    const id = setInterval(() => {
-      setVideoActive(false);
-      setIdx(p => (p + 1) % activities.length);
-    }, settings.slide_interval * 1000);
-    return () => clearInterval(id);
-  }, [settings.auto_slide, settings.slide_interval, activities]);
-
-  /* Auto-play video after idle delay */
-  useEffect(() => {
-    if (!activities) return;
     const act = activities[idx];
-    if (!act?.heroVideoUrl) { setVideoActive(false); return; }
-    setVideoActive(false);
-    const t = setTimeout(() => setVideoActive(true), VIDEO_DELAY_MS);
-    return () => clearTimeout(t);
-  }, [idx, activities]);
-
-  /* Play/pause video element */
-  useEffect(() => {
-    if (!videoRef.current) return;
-    if (videoActive) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-    }
-  }, [videoActive]);
+    if (act?.heroVideoUrl) return; // video controls its own advancement
+    const id = setInterval(() => setIdx(p => (p + 1) % activities.length), settings.slide_interval * 1000);
+    return () => clearInterval(id);
+  }, [settings.auto_slide, settings.slide_interval, activities, idx]);
 
   if (isLoadingAct || isLoadingSet) {
     return (
@@ -112,22 +88,26 @@ export default function DisplayPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* ══ VIDEO LAYER — fades in after idle delay ══ */}
+      {/* ══ VIDEO LAYER — auto-plays immediately; onEnded advances to next ══ */}
       {act.heroVideoUrl && (
         <motion.div
-          className="absolute inset-0 z-1 pointer-events-none"
-          animate={{ opacity: videoActive ? 1 : 0 }}
-          transition={{ duration: 1.2 }}
+          key={act.id + "-video"}
+          className="absolute inset-0 pointer-events-none"
+          style={{ zIndex: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.0 }}
         >
           <video
-            ref={videoRef}
+            key={act.id}
             src={act.heroVideoUrl}
             className="w-full h-full object-cover"
             style={{ filter: "brightness(0.45) saturate(1.6)" }}
+            autoPlay
             muted
-            loop
             playsInline
             preload="auto"
+            onEnded={() => go(idx + 1)}
           />
           <div className="absolute inset-0" style={{
             background: `
