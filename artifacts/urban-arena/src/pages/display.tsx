@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,22 +12,51 @@ const C = {
   pink:         "#EC4899",
 };
 
+const VIDEO_DELAY_MS = 6000; // play video after 6s of viewing an activity
+
 export default function DisplayPage() {
   const { data: activities, isLoading: isLoadingAct } = useListDisplayActivities();
   const { settings, isLoading: isLoadingSet }         = useAppSettings();
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx]             = useState(0);
+  const [videoActive, setVideoActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const go = (next: number) => {
     if (!activities) return;
+    setVideoActive(false);
     setIdx(((next % activities.length) + activities.length) % activities.length);
   };
 
   /* Auto-slide */
   useEffect(() => {
     if (!settings.auto_slide || !activities || activities.length <= 1) return;
-    const id = setInterval(() => setIdx(p => (p + 1) % activities.length), settings.slide_interval * 1000);
+    const id = setInterval(() => {
+      setVideoActive(false);
+      setIdx(p => (p + 1) % activities.length);
+    }, settings.slide_interval * 1000);
     return () => clearInterval(id);
   }, [settings.auto_slide, settings.slide_interval, activities]);
+
+  /* Auto-play video after idle delay */
+  useEffect(() => {
+    if (!activities) return;
+    const act = activities[idx];
+    if (!act?.heroVideoUrl) { setVideoActive(false); return; }
+    setVideoActive(false);
+    const t = setTimeout(() => setVideoActive(true), VIDEO_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [idx, activities]);
+
+  /* Play/pause video element */
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (videoActive) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    } else {
+      videoRef.current.pause();
+    }
+  }, [videoActive]);
 
   if (isLoadingAct || isLoadingSet) {
     return (
@@ -56,7 +85,7 @@ export default function DisplayPage() {
       style={{ background: C.bg, fontFamily: "system-ui, sans-serif" }}
     >
 
-      {/* ══ FULL-BLEED BACKGROUND ══ */}
+      {/* ══ FULL-BLEED BACKGROUND — image layer ══ */}
       <AnimatePresence mode="sync">
         <motion.div
           key={act.id + "-bg"}
@@ -83,27 +112,60 @@ export default function DisplayPage() {
         </motion.div>
       </AnimatePresence>
 
+      {/* ══ VIDEO LAYER — fades in after idle delay ══ */}
+      {act.heroVideoUrl && (
+        <motion.div
+          className="absolute inset-0 z-1 pointer-events-none"
+          animate={{ opacity: videoActive ? 1 : 0 }}
+          transition={{ duration: 1.2 }}
+        >
+          <video
+            ref={videoRef}
+            src={act.heroVideoUrl}
+            className="w-full h-full object-cover"
+            style={{ filter: "brightness(0.45) saturate(1.6)" }}
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
+          <div className="absolute inset-0" style={{
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,58,237,0.55) 0%, transparent 60%),
+              linear-gradient(to bottom, rgba(10,8,18,0.25) 0%, rgba(10,8,18,0.1) 40%, rgba(10,8,18,0.88) 100%)
+            `
+          }} />
+        </motion.div>
+      )}
+
       {/* Scanlines */}
       <div className="absolute inset-0 z-0 pointer-events-none" style={{
         background: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(100,0,200,0.03) 2px, rgba(100,0,200,0.03) 4px)`,
       }} />
 
-      {/* ══ EXPLORE WATERMARK ══ */}
+      {/* ══ ACTIVITY NAME WATERMARK ══ */}
       <div className="absolute inset-x-0 top-[2%] z-10 pointer-events-none text-center overflow-hidden">
-        <span
-          className="font-black uppercase leading-none"
-          style={{
-            fontSize: "clamp(54px, 23vw, 210px)",
-            letterSpacing: "0.05em",
-            background: "linear-gradient(135deg, rgba(168,85,247,0.55) 0%, rgba(236,72,153,0.35) 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            display: "block",
-          }}
-        >
-          {settings.overlay_heading || "EXPLORE"}
-        </span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={act.id + "-wm"}
+            className="font-black uppercase leading-none"
+            style={{
+              fontSize: "clamp(44px, 19vw, 180px)",
+              letterSpacing: "0.05em",
+              background: "linear-gradient(135deg, rgba(168,85,247,0.55) 0%, rgba(236,72,153,0.35) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              display: "block",
+            }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.5 }}
+          >
+            {act.name}
+          </motion.span>
+        </AnimatePresence>
       </div>
 
       {/* ══ LOGO ══ */}
