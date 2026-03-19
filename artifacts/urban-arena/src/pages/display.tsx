@@ -18,7 +18,8 @@ export default function DisplayPage() {
     setIdx(((next % activities.length) + activities.length) % activities.length);
   };
 
-  const touchStartX = useRef<number | null>(null);
+  const touchStartX  = useRef<number | null>(null);
+  const wheelCooldown = useRef(false);
 
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -32,6 +33,15 @@ export default function DisplayPage() {
       go(idx + (delta < 0 ? 1 : -1));
     }
     touchStartX.current = null;
+  };
+
+  const onWheel = (e: React.WheelEvent) => {
+    if (wheelCooldown.current) return;
+    const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(horizontal) < 20) return;
+    go(idx + (horizontal > 0 ? 1 : -1));
+    wheelCooldown.current = true;
+    setTimeout(() => { wheelCooldown.current = false; }, 600);
   };
 
   useEffect(() => {
@@ -75,6 +85,7 @@ export default function DisplayPage() {
         className="relative overflow-hidden"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
+        onWheel={onWheel}
       >
 
         {/* Hero video — plays full-bleed when a video URL is set for this activity */}
@@ -112,6 +123,7 @@ export default function DisplayPage() {
           style={{ zIndex: 9, background: "transparent" }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
+          onWheel={onWheel}
         />
 
         {/* LIVE badge — shown in top-left when video is playing */}
