@@ -27,7 +27,10 @@ export default function DisplayPage() {
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const delta = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(delta) > 50) go(idx + (delta < 0 ? 1 : -1));
+    if (Math.abs(delta) > 40) {
+      e.preventDefault();
+      go(idx + (delta < 0 ? 1 : -1));
+    }
     touchStartX.current = null;
   };
 
@@ -100,6 +103,16 @@ export default function DisplayPage() {
             />
           </AnimatePresence>
         )}
+
+        {/* Transparent swipe-capture overlay — ensures touch events reach our handlers
+            even when a <video> element would otherwise consume them.
+            z-[9] keeps it below the progress dots (z-10) and LIVE badge (z-10). */}
+        <div
+          className="absolute inset-0"
+          style={{ zIndex: 9, background: "transparent" }}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        />
 
         {/* LIVE badge — shown in top-left when video is playing */}
         {act.heroVideoUrl && (
