@@ -299,52 +299,19 @@ function MainCard({
           </div>
         )}
 
-        {/* Prev / Next tap zones */}
+        {/* Prev / Next invisible tap zones */}
         <button
           onClick={onPrev}
-          className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-2"
-          style={{ width: "22%", zIndex: 5, background: "transparent" }}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <img
-              src={prevActivity.cardImageUrl || fallback}
-              alt={prevActivity.name}
-              className="object-cover rounded-xl opacity-70 hover:opacity-100"
-              style={{
-                width: "clamp(40px,10vw,68px)",
-                height: "clamp(40px,10vw,68px)",
-                border: `1px solid rgba(168,85,247,0.5)`,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.6)",
-              }}
-            />
-            <span className="text-white/50 text-center leading-tight" style={{ fontSize: "clamp(7px,1.8vw,10px)", maxWidth: "clamp(40px,10vw,68px)" }}>
-              ‹ {prevActivity.name}
-            </span>
-          </div>
-        </button>
-
+          className="absolute left-0 top-0 bottom-0"
+          style={{ width: "25%", zIndex: 5, background: "transparent" }}
+          aria-label={`Previous: ${prevActivity.name}`}
+        />
         <button
           onClick={onNext}
-          className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-2"
-          style={{ width: "22%", zIndex: 5, background: "transparent" }}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <img
-              src={nextActivity.cardImageUrl || fallback}
-              alt={nextActivity.name}
-              className="object-cover rounded-xl opacity-70 hover:opacity-100"
-              style={{
-                width: "clamp(40px,10vw,68px)",
-                height: "clamp(40px,10vw,68px)",
-                border: `1px solid rgba(168,85,247,0.5)`,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.6)",
-              }}
-            />
-            <span className="text-white/50 text-center leading-tight" style={{ fontSize: "clamp(7px,1.8vw,10px)", maxWidth: "clamp(40px,10vw,68px)" }}>
-              {nextActivity.name} ›
-            </span>
-          </div>
-        </button>
+          className="absolute right-0 top-0 bottom-0"
+          style={{ width: "25%", zIndex: 5, background: "transparent" }}
+          aria-label={`Next: ${nextActivity.name}`}
+        />
 
         {/* Activity name overlaid on image */}
         <div className="absolute bottom-0 inset-x-0 z-4 px-4 pb-2">
