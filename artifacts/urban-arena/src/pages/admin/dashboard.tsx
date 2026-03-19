@@ -23,17 +23,13 @@ export default function AdminDashboard() {
           <p className="text-muted-foreground mt-1">Welcome back. Here's what's currently running on the kiosks.</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/display">
-            <a target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors">
-              <Eye className="w-4 h-4" />
-              Preview Display
-            </a>
-          </Link>
-          <Link href="/admin/activities/new">
-            <a className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-              <PlayCircle className="w-4 h-4" />
-              New Activity
-            </a>
+          <a href="/display" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors">
+            <Eye className="w-4 h-4" />
+            Preview Display
+          </a>
+          <Link href="/admin/activities/new" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            <PlayCircle className="w-4 h-4" />
+            New Activity
           </Link>
         </div>
       </div>
