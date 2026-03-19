@@ -74,7 +74,16 @@ export default function DisplayPage() {
   return (
     <div
       className="fixed inset-0 overflow-hidden select-none text-white"
-      style={{ fontFamily: "system-ui, sans-serif", display: "grid", gridTemplateRows: "80% 20%" }}
+      style={{
+        fontFamily:          "system-ui, sans-serif",
+        display:             "grid",
+        gridTemplateRows:    "80% 20%",
+        width:               "100dvw",
+        height:              "100dvh",
+        overscrollBehavior:  "none",
+        touchAction:         "pan-x",
+        WebkitUserSelect:    "none",
+      }}
     >
 
       {/* ══════════════════════════════════════════════
