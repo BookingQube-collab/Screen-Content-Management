@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings }            from "@/hooks/use-app-settings";
 import { motion, AnimatePresence }   from "framer-motion";
-import { Loader2, Play, Heart }      from "lucide-react";
+import { Loader2, Play }              from "lucide-react";
 
 const PURPLE = "#7C3AED";
 const PINK   = "#EC4899";
@@ -206,70 +206,56 @@ export default function DisplayPage() {
         style={{ background: DARK, borderTop: "1px solid rgba(168,85,247,0.25)" }}
       >
 
-        {/* ── Stats (left 50%) ── */}
-        <div className="flex items-stretch" style={{ width: "50%" }}>
+        {/* ── Stats (left 40%) ── */}
+        <div className="flex items-stretch" style={{ width: "40%" }}>
           <StatCell num={`${act.ageLimit || 18}`} unit="+"       label="Min Age" />
           <StatCell num={String(idx + 1).padStart(2, "0")} unit={`/${count}`} label="Activity" />
           <StatCell num={act.heroVideoUrl ? "LIVE" : "OPEN"} unit="" label="Status" accent={!!act.heroVideoUrl} />
         </div>
 
-        {/* ── Media panels (right 50%) ── */}
-        <div
-          className="flex"
-          style={{ flex: 1, gap: "2px", background: "#000" }}
-        >
-          {/* Video / image + heart */}
-          <div className="flex flex-col" style={{ flex: 3, gap: "2px" }}>
+        {/* ── Media panels (right 60%) ── */}
+        <div className="flex" style={{ flex: 1 }}>
 
-            {/* Video panel */}
-            <div className="relative overflow-hidden" style={{ flex: 3, background: "#111" }}>
-              {act.heroVideoUrl ? (
-                <video
-                  key={act.id}
-                  src={act.heroVideoUrl}
-                  className="w-full h-full object-cover"
-                  style={{ filter: "brightness(0.60) saturate(1.6)" }}
-                  autoPlay muted playsInline preload="auto"
-                  onEnded={() => go(idx + 1)}
-                />
-              ) : (
-                <img
-                  src={img}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  style={{ filter: "brightness(0.48) saturate(1.6)" }}
-                />
-              )}
-              {/* pink tint */}
-              <div className="absolute inset-0 pointer-events-none" style={{ background: `${PINK}44`, mixBlendMode: "multiply" }} />
-              {/* play button */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div
-                  className="rounded-full flex items-center justify-center"
-                  style={{ width: "clamp(24px,4vw,50px)", height: "clamp(24px,4vw,50px)", background: "rgba(255,255,255,0.92)" }}
-                >
-                  <Play fill={PINK} color={PINK} style={{ width: "40%", height: "40%", marginLeft: "8%" }} />
-                </div>
+          {/* Video / image panel — full height, no heart */}
+          <div className="relative overflow-hidden" style={{ flex: 1, background: "#111" }}>
+            {act.heroVideoUrl ? (
+              <video
+                key={act.id}
+                src={act.heroVideoUrl}
+                className="w-full h-full object-cover"
+                style={{ filter: "brightness(0.60) saturate(1.6)" }}
+                autoPlay muted playsInline preload="auto"
+                onEnded={() => go(idx + 1)}
+              />
+            ) : (
+              <img
+                src={img}
+                alt=""
+                className="w-full h-full object-cover"
+                style={{ filter: "brightness(0.48) saturate(1.6)" }}
+              />
+            )}
+            {/* pink tint */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: `${PINK}44`, mixBlendMode: "multiply" }} />
+            {/* play button */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                className="rounded-full flex items-center justify-center"
+                style={{ width: "clamp(24px,4vw,50px)", height: "clamp(24px,4vw,50px)", background: "rgba(255,255,255,0.92)" }}
+              >
+                <Play fill={PINK} color={PINK} style={{ width: "40%", height: "40%", marginLeft: "8%" }} />
               </div>
-              {/* LIVE badge */}
-              {act.heroVideoUrl && (
-                <div
-                  className="absolute top-1 left-1 flex items-center gap-1 font-black"
-                  style={{ background: PINK, borderRadius: 3, padding: "1px 6px", fontSize: "clamp(6px,0.85vw,10px)", color: "#fff", letterSpacing: "0.1em" }}
-                >
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "lp 1.2s infinite" }} />
-                  LIVE
-                </div>
-              )}
             </div>
-
-            {/* Heart cell */}
-            <div
-              className="flex items-center justify-center flex-none"
-              style={{ height: "clamp(22px,4vh,36px)", background: PINK }}
-            >
-              <Heart fill="white" color="white" style={{ width: "clamp(12px,2vw,22px)", height: "clamp(12px,2vw,22px)" }} />
-            </div>
+            {/* LIVE badge */}
+            {act.heroVideoUrl && (
+              <div
+                className="absolute top-1 left-1 flex items-center gap-1 font-black"
+                style={{ background: PINK, borderRadius: 3, padding: "1px 6px", fontSize: "clamp(6px,0.85vw,10px)", color: "#fff", letterSpacing: "0.1em" }}
+              >
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "lp 1.2s infinite" }} />
+                LIVE
+              </div>
+            )}
           </div>
 
           {/* Next Item */}
