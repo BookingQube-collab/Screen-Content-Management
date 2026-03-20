@@ -101,6 +101,18 @@ export default function DisplayPage() {
         WebkitUserSelect:    "none",
       }}
     >
+      {/* ── Silent background preloader for all activity videos ── */}
+      {activities.filter(a => a.heroVideoUrl).map(a => (
+        <video
+          key={"preload-" + a.id}
+          src={a.heroVideoUrl!}
+          preload="auto"
+          muted
+          playsInline
+          style={{ display: "none", position: "absolute", pointerEvents: "none" }}
+          aria-hidden="true"
+        />
+      ))}
 
       {/* ══════════════════════════════════════════════
           TOP 80% — full-bleed video (if set) or image + text overlay
@@ -120,7 +132,7 @@ export default function DisplayPage() {
             src={act.heroVideoUrl}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ filter: "brightness(0.85) saturate(1.3)" }}
-            autoPlay muted playsInline preload="auto"
+            autoPlay muted playsInline preload="auto" fetchPriority="high"
             onEnded={() => go(idx + 1)}
           />
         ) : (
