@@ -227,20 +227,18 @@ export default function DisplayPage() {
       ══════════════════════════════════════════════ */}
       <div
         className="flex"
-        style={{ background: DARK, borderTop: "1px solid rgba(168,85,247,0.25)" }}
+        style={{ background: "#000000", borderTop: "1px solid rgba(168,85,247,0.25)" }}
       >
 
         {/* ── Stats — flex: 1, fills all space except Next Item ── */}
         <div className="flex items-stretch" style={{ flex: 1 }}>
 
-          {/* Min Age + T&C */}
+          {/* Min Age + T&C — 70% */}
           <div
             className="flex flex-col justify-center text-white"
             style={{
               padding: "clamp(8px,1.4vw,22px) clamp(12px,2vw,36px)",
-              flex: "0 0 auto",
-              minWidth: "clamp(140px,22vw,320px)",
-              maxWidth: "clamp(200px,32vw,480px)",
+              flex: "0 0 70%",
               borderRight: "1px solid rgba(168,85,247,0.18)",
             }}
           >
