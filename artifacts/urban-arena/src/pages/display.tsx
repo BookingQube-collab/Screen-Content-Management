@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
 import { useAppSettings }            from "@/hooks/use-app-settings";
 import { motion, AnimatePresence }   from "framer-motion";
-import { Loader2 }                    from "lucide-react";
+import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 
 const PURPLE = "#7C3AED";
 const PINK   = "#EC4899";
@@ -16,6 +16,22 @@ export default function DisplayPage() {
   const go = (next: number) => {
     if (!activities) return;
     setIdx(((next % activities.length) + activities.length) % activities.length);
+  };
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
   };
 
   const touchStartX  = useRef<number | null>(null);
@@ -145,6 +161,31 @@ export default function DisplayPage() {
             LIVE
           </div>
         )}
+
+        {/* Fullscreen toggle — top-right corner */}
+        <button
+          onClick={toggleFullscreen}
+          className="absolute flex items-center justify-center"
+          style={{
+            top: "clamp(8px,1.2vw,18px)",
+            right: "clamp(8px,1.2vw,18px)",
+            zIndex: 20,
+            width: "clamp(28px,3vw,44px)",
+            height: "clamp(28px,3vw,44px)",
+            borderRadius: 8,
+            background: "rgba(0,0,0,0.45)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            color: "rgba(255,255,255,0.80)",
+            cursor: "pointer",
+            backdropFilter: "blur(6px)",
+          }}
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen
+            ? <Minimize2 style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
+            : <Maximize2 style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
+          }
+        </button>
 
         {/* ── Text overlay, watermark & gradients — hidden when video is playing ── */}
         {!act.heroVideoUrl && (
