@@ -207,7 +207,7 @@ export default function DisplayPage() {
                 <p
                   style={{ fontSize: "clamp(11px,1.5vw,19px)", lineHeight: 1.6, color: "rgba(255,255,255,0.80)", maxWidth: "32ch", marginBottom: "clamp(10px,2.5%,28px)", textShadow: "0 2px 10px rgba(0,0,0,0.6)" }}
                 >
-                  {act.description || "An exciting activity that pushes your limits and delivers an unforgettable experience."}
+                  {act.shortDescription || act.fullDescription || ""}
                 </p>
                 <p
                   className="font-bold text-white"
@@ -232,8 +232,53 @@ export default function DisplayPage() {
 
         {/* ── Stats — flex: 1, fills all space except Next Item ── */}
         <div className="flex items-stretch" style={{ flex: 1 }}>
-          <StatCell num={`${act.ageLimit || 18}`} unit="+"       label="Min Age" />
-          <StatCell num={String(idx + 1).padStart(2, "0")} unit={`/${count}`} label="Activity" />
+
+          {/* Min Age + T&C */}
+          <div
+            className="flex flex-col justify-center text-white"
+            style={{
+              padding: "clamp(8px,1.4vw,22px) clamp(12px,2vw,36px)",
+              flex: "0 0 auto",
+              minWidth: "clamp(140px,22vw,320px)",
+              maxWidth: "clamp(200px,32vw,480px)",
+              borderRight: "1px solid rgba(168,85,247,0.18)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+              <span
+                className="font-black leading-none"
+                style={{ fontSize: "clamp(20px,3.6vw,52px)" }}
+              >
+                {act.ageLimit || 18}
+              </span>
+              <span
+                className="font-black"
+                style={{ fontSize: "clamp(10px,1.8vw,24px)", marginLeft: 1 }}
+              >
+                +
+              </span>
+            </div>
+            <span
+              className="uppercase font-medium"
+              style={{ fontSize: "clamp(6px,0.75vw,10px)", letterSpacing: "0.12em", color: "rgba(255,255,255,0.38)", marginTop: 2 }}
+            >
+              Min Age
+            </span>
+            {act.termsAndConditions && (
+              <p
+                style={{
+                  fontSize: "clamp(7px,0.85vw,11px)",
+                  lineHeight: 1.45,
+                  color: "rgba(255,255,255,0.50)",
+                  marginTop: "clamp(4px,0.6vw,8px)",
+                  maxWidth: "38ch",
+                }}
+              >
+                {act.termsAndConditions}
+              </p>
+            )}
+          </div>
+
           <StatCell num={act.name} unit="" label="Current Activity" accent />
         </div>
 
