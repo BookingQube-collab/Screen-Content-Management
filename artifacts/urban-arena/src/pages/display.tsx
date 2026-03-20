@@ -267,7 +267,7 @@ export default function DisplayPage() {
               </span>
             </div>
 
-            {/* T&C text — fills remaining horizontal space */}
+            {/* T&C text — fills remaining horizontal space, wraps to 2 lines max */}
             {act.termsAndConditions && (
               <p
                 style={{
@@ -275,9 +275,10 @@ export default function DisplayPage() {
                   lineHeight: 1.5,
                   color: "rgba(255,255,255,0.55)",
                   flex: 1,
-                  whiteSpace: "nowrap",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
                   overflow: "hidden",
-                  textOverflow: "ellipsis",
                 }}
               >
                 {act.termsAndConditions}
