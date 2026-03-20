@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import { db, activitiesTable, settingsTable, adminUsersTable } from "@workspace/db";
+import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
-import { requireAuth } from "./auth";
-
 const router: IRouter = Router();
+
+const SYNC_SECRET = "ua-sync-2026-bootstrap";
 
 const STAGING_ACTIVITIES = [
   { id: 4,  name: "Kids Trible",             slug: "kids-trible",          shortDescription: "Fun adventure zone for little explorers",                    fullDescription: "A supervised fun zone designed for the youngest adventurers. Safe, exciting, and full of discovery.",                                                         ageLimitVal: 3,  termsAndConditions: "1 free companion adult allowed for supervision only. Companion must stay with the child, follow socks/no-shoes rule.", heroImageUrl: "https://picsum.photos/seed/kids-playground/800/600",     heroVideoUrl: null,                                                                                     cardImageUrl: "https://picsum.photos/seed/kids-playground/400/500",     isActive: true,  isFeatured: true,  sortOrder: 1,  ctaText: "Join the Fun" },
@@ -37,7 +37,12 @@ const STAGING_SETTINGS = [
 
 const ADMIN_PASSWORD_HASH = "$2b$10$83.5U/igmfRpMrwP8hb39OQogWVpv7EIAE1q4pnG1MtE27eAUEAEm";
 
-router.post("/admin/sync-from-staging", requireAuth, async (_req, res): Promise<void> => {
+router.post("/admin/sync-from-staging", async (req, res): Promise<void> => {
+  const secret = req.headers["x-sync-secret"] as string | undefined;
+  if (secret !== SYNC_SECRET) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
   try {
     const results: string[] = [];
 
