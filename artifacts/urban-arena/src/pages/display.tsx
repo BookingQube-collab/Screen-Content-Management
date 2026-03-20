@@ -245,31 +245,33 @@ export default function DisplayPage() {
             <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
               <span
                 className="font-black leading-none"
-                style={{ fontSize: "clamp(20px,3.6vw,52px)" }}
+                style={{ fontSize: "clamp(48px,7vw,110px)" }}
               >
                 {act.ageLimit || 18}
               </span>
               <span
                 className="font-black"
-                style={{ fontSize: "clamp(10px,1.8vw,24px)", marginLeft: 1 }}
+                style={{ fontSize: "clamp(24px,3.5vw,54px)", marginLeft: 2 }}
               >
                 +
               </span>
             </div>
             <span
               className="uppercase font-medium"
-              style={{ fontSize: "clamp(6px,0.75vw,10px)", letterSpacing: "0.12em", color: "rgba(255,255,255,0.38)", marginTop: 2 }}
+              style={{ fontSize: "clamp(7px,0.85vw,12px)", letterSpacing: "0.12em", color: "rgba(255,255,255,0.38)", marginTop: 3 }}
             >
               Min Age
             </span>
             {act.termsAndConditions && (
               <p
                 style={{
-                  fontSize: "clamp(7px,0.85vw,11px)",
-                  lineHeight: 1.45,
-                  color: "rgba(255,255,255,0.50)",
-                  marginTop: "clamp(4px,0.6vw,8px)",
-                  maxWidth: "38ch",
+                  fontSize: "clamp(9px,1vw,14px)",
+                  lineHeight: 1.4,
+                  color: "rgba(255,255,255,0.55)",
+                  marginTop: "clamp(4px,0.5vw,8px)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
                 {act.termsAndConditions}
