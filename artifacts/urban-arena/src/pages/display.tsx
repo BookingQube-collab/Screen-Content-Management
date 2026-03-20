@@ -233,42 +233,48 @@ export default function DisplayPage() {
         {/* ── Stats — flex: 1, fills all space except Next Item ── */}
         <div className="flex items-stretch" style={{ flex: 1 }}>
 
-          {/* Min Age + T&C — 70% */}
+          {/* Min Age + T&C — 70%, row layout */}
           <div
-            className="flex flex-col justify-center text-white"
+            className="flex flex-row items-center text-white"
             style={{
               padding: "clamp(8px,1.4vw,22px) clamp(12px,2vw,36px)",
               flex: "0 0 70%",
               borderRight: "1px solid rgba(168,85,247,0.18)",
+              gap: "clamp(16px,2.5vw,48px)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+            {/* Age number block */}
+            <div className="flex flex-col flex-none">
+              <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+                <span
+                  className="font-black leading-none"
+                  style={{ fontSize: "clamp(48px,7vw,110px)" }}
+                >
+                  {act.ageLimit || 18}
+                </span>
+                <span
+                  className="font-black"
+                  style={{ fontSize: "clamp(24px,3.5vw,54px)", marginLeft: 2 }}
+                >
+                  +
+                </span>
+              </div>
               <span
-                className="font-black leading-none"
-                style={{ fontSize: "clamp(48px,7vw,110px)" }}
+                className="uppercase font-medium"
+                style={{ fontSize: "clamp(7px,0.85vw,12px)", letterSpacing: "0.12em", color: "rgba(255,255,255,0.38)", marginTop: 3 }}
               >
-                {act.ageLimit || 18}
-              </span>
-              <span
-                className="font-black"
-                style={{ fontSize: "clamp(24px,3.5vw,54px)", marginLeft: 2 }}
-              >
-                +
+                Min Age
               </span>
             </div>
-            <span
-              className="uppercase font-medium"
-              style={{ fontSize: "clamp(7px,0.85vw,12px)", letterSpacing: "0.12em", color: "rgba(255,255,255,0.38)", marginTop: 3 }}
-            >
-              Min Age
-            </span>
+
+            {/* T&C text — fills remaining horizontal space */}
             {act.termsAndConditions && (
               <p
                 style={{
-                  fontSize: "clamp(9px,1vw,14px)",
-                  lineHeight: 1.4,
+                  fontSize: "clamp(9px,1.1vw,16px)",
+                  lineHeight: 1.5,
                   color: "rgba(255,255,255,0.55)",
-                  marginTop: "clamp(4px,0.5vw,8px)",
+                  flex: 1,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
