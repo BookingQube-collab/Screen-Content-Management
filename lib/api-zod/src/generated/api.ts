@@ -15,6 +15,16 @@ export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
 
+// Shared assignment fields added to all activity response schemas
+const activityAssignmentFields = {
+  locationId:       zod.number().int().nullish(),
+  screenId:         zod.number().int().nullish(),
+  moduleType:       zod.string().nullish(),
+  isOfflineEnabled: zod.boolean().optional(),
+  validFrom:        zod.string().nullish(),
+  validTo:          zod.string().nullish(),
+};
+
 /**
  * @summary List all activities
  */
@@ -34,6 +44,7 @@ export const ListActivitiesResponseItem = zod.object({
   isFeatured: zod.boolean(),
   sortOrder: zod.number(),
   ctaText: zod.string(),
+  ...activityAssignmentFields,
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -58,6 +69,7 @@ export const ListDisplayActivitiesResponseItem = zod.object({
   isFeatured: zod.boolean(),
   sortOrder: zod.number(),
   ctaText: zod.string(),
+  ...activityAssignmentFields,
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -88,6 +100,7 @@ export const GetActivityResponse = zod.object({
   isFeatured: zod.boolean(),
   sortOrder: zod.number(),
   ctaText: zod.string(),
+  ...activityAssignmentFields,
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -138,6 +151,7 @@ export const UpdateActivityResponse = zod.object({
   isFeatured: zod.boolean(),
   sortOrder: zod.number(),
   ctaText: zod.string(),
+  ...activityAssignmentFields,
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -202,8 +216,31 @@ export const ReorderActivityResponse = zod.object({
   isFeatured: zod.boolean(),
   sortOrder: zod.number(),
   ctaText: zod.string(),
+  ...activityAssignmentFields,
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Admin login
+ */
+export const AdminLoginBody = zod.object({
+  email: zod.string().email(),
+  password: zod.string(),
+});
+
+export const AdminLoginResponse = zod.object({
+  user: zod.object({ id: zod.number(), email: zod.string() }),
+  token: zod.string(),
+});
+
+export const AdminLogoutResponse = zod.object({
+  success: zod.boolean(),
+});
+
+export const GetAuthMeResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
 });
 
 /**
@@ -232,59 +269,4 @@ export const UpsertSettingResponse = zod.object({
   value: zod.string(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
-});
-
-/**
- * @summary Admin login
- */
-export const AdminLoginBody = zod.object({
-  email: zod.string(),
-  password: zod.string(),
-});
-
-export const AdminLoginResponse = zod.object({
-  user: zod.object({
-    id: zod.number(),
-    email: zod.string(),
-  }),
-  token: zod.string(),
-});
-
-/**
- * @summary Admin logout
- */
-export const AdminLogoutResponse = zod.object({
-  success: zod.boolean(),
-});
-
-/**
- * @summary Get current admin user
- */
-export const GetAuthMeResponse = zod.object({
-  id: zod.number(),
-  email: zod.string(),
-});
-
-/**
- * @summary Upload an image file
- */
-export const UploadImageBody = zod.object({
-  file: zod.instanceof(File).optional(),
-});
-
-export const UploadImageResponse = zod.object({
-  url: zod.string(),
-  filename: zod.string(),
-});
-
-/**
- * @summary Upload a video file
- */
-export const UploadVideoBody = zod.object({
-  file: zod.instanceof(File).optional(),
-});
-
-export const UploadVideoResponse = zod.object({
-  url: zod.string(),
-  filename: zod.string(),
 });
