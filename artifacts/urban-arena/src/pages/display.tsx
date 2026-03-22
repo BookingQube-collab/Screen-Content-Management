@@ -16,7 +16,7 @@ const DARK   = "#0c0820";
 interface ApiLocation { id: number; name: string; code: string; logoUrl?: string | null; }
 
 export default function DisplayPage() {
-  const { data: rawActivities, isLoading: loadAct } = useListDisplayActivities();
+  const { data: rawActivities, isLoading: loadAct, isError: actError } = useListDisplayActivities();
   const { settings,            isLoading: loadSet }  = useAppSettings();
   const { config, isConfigured, loaded: configLoaded } = useScreenConfig();
   const [, setLocation] = useLocation();
@@ -47,11 +47,29 @@ export default function DisplayPage() {
     }
   }, [setLocation]);
 
+  // Track whether we are using cached (offline) data
+  const [isOffline, setIsOffline] = useState(false);
+
+  // When the API fails, fall back to the localStorage activity cache
+  const effectiveRaw = (() => {
+    if (rawActivities?.length) return rawActivities;
+    if ((actError || (!loadAct && !rawActivities?.length)) && OfflineContentService.hasCache()) {
+      return OfflineContentService.getOfflineActivities() as typeof rawActivities;
+    }
+    return rawActivities;
+  })();
+
+  // Track offline state for the indicator
+  useEffect(() => {
+    if (actError && OfflineContentService.hasCache()) setIsOffline(true);
+    else if (rawActivities?.length) setIsOffline(false);
+  }, [actError, rawActivities]);
+
   // Apply client-side screen/location filtering
   const activities = (() => {
-    if (!rawActivities) return rawActivities;
-    if (!config.screenId && !config.locationId) return rawActivities;
-    return rawActivities.filter(a => {
+    if (!effectiveRaw) return effectiveRaw;
+    if (!config.screenId && !config.locationId) return effectiveRaw;
+    return effectiveRaw.filter(a => {
       const hasAssignment = (a.locationId != null) || (a.screenId != null);
       if (!hasAssignment) return true;
       if (config.screenId   && a.screenId   === config.screenId)   return true;
@@ -60,10 +78,10 @@ export default function DisplayPage() {
     });
   })();
 
-  // Cache activities for offline use after load
+  // Cache activities for offline use whenever fresh data arrives
   useEffect(() => {
     if (rawActivities?.length) {
-      OfflineContentService.cacheActivities(rawActivities as any[]);
+      OfflineContentService.cacheActivities(rawActivities as any[], true);
     }
   }, [rawActivities]);
 
@@ -472,6 +490,17 @@ export default function DisplayPage() {
           </div>
         </div>
       </div>
+
+      {/* Offline mode indicator */}
+      {isOffline && (
+        <div
+          className="fixed top-3 right-4 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-widest uppercase z-50"
+          style={{ background: "rgba(236,72,153,0.18)", color: "#EC4899", border: "1px solid rgba(236,72,153,0.35)", backdropFilter: "blur(8px)" }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#EC4899", display: "inline-block", animation: "lp 2s infinite" }} />
+          Offline Mode
+        </div>
+      )}
 
       <style>{`@keyframes lp{0%,100%{opacity:1}50%{opacity:0.25}}`}</style>
     </div>

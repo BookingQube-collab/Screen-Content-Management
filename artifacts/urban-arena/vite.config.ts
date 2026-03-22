@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { VitePWA } from "vite-plugin-pwa";
 
 const rawPort = process.env.PORT;
 
@@ -32,6 +33,72 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    VitePWA({
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      includeAssets: ["favicon.svg", "images/*.png"],
+      manifest: {
+        name: "Urban Arena Display",
+        short_name: "UA Display",
+        description: "Urban Arena kiosk display system",
+        theme_color: "#0c0820",
+        background_color: "#0c0820",
+        display: "fullscreen",
+        orientation: "landscape",
+        icons: [
+          { src: "images/logo-urban-arena.png", sizes: "any", type: "image/png", purpose: "any maskable" },
+        ],
+      },
+      workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+        // Cache the app shell (JS, CSS, HTML) with CacheFirst
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // API: NetworkFirst — use live data when online, cached when not
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/activities\/display/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "ua-activities-api",
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/api\/settings/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "ua-settings-api",
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/api\/admin\/locations/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "ua-locations-api",
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Cache uploaded media (images & videos) with CacheFirst
+            urlPattern: /\/api\/uploads\/files\/.+/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "ua-media",
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
