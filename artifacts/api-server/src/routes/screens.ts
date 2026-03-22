@@ -6,7 +6,8 @@ import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-router.get("/admin/screens", requireAuth, async (_req, res): Promise<void> => {
+// Public — required by the kiosk setup screen (no auth needed for reading screen names)
+router.get("/admin/screens", async (_req, res): Promise<void> => {
   const rows = await db
     .select({
       id:           screensTable.id,
@@ -23,6 +24,7 @@ router.get("/admin/screens", requireAuth, async (_req, res): Promise<void> => {
     })
     .from(screensTable)
     .leftJoin(locationsTable, eq(screensTable.locationId, locationsTable.id))
+    .where(eq(screensTable.isActive, true))
     .orderBy(asc(screensTable.name));
   res.json(rows);
 });

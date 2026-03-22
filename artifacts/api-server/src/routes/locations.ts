@@ -6,8 +6,9 @@ import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-router.get("/admin/locations", requireAuth, async (_req, res): Promise<void> => {
-  const rows = await db.select().from(locationsTable).orderBy(asc(locationsTable.name));
+// Public — list of venues is not sensitive, required by the kiosk setup screen
+router.get("/admin/locations", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(locationsTable).where(eq(locationsTable.isActive, true)).orderBy(asc(locationsTable.name));
   res.json(rows);
 });
 
