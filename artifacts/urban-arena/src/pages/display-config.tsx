@@ -26,6 +26,7 @@ export default function DisplayConfigPage() {
       titlePart2={titlePart2}
       onDone={() => setLoc("/display")}
       onBack={() => setLoc("/display")}
+      showAddress
     />
   );
 }

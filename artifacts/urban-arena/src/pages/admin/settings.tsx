@@ -1,18 +1,45 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAppSettings } from "@/hooks/use-app-settings";
+import { useAuthToken } from "@/hooks/use-auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Upload, X, ImageIcon } from "lucide-react";
 
 export default function AdminSettings() {
   const { settings, isLoading, updateSetting } = useAppSettings();
+  const { authHeaders } = useAuthToken();
   const [localSettings, setLocalSettings] = useState(settings);
   const [initialized, setInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/uploads/image", {
+        method: "POST",
+        headers: authHeaders,
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      setLocalSettings(s => ({ ...s, logo_url: url }));
+    } catch {
+      alert("Logo upload failed. Please try again.");
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !initialized) {
@@ -120,6 +147,60 @@ export default function AdminSettings() {
               </div>
               <p className="text-xs text-muted-foreground text-center">Admin login preview</p>
             </div>
+          </div>
+        </div>
+
+        {/* Display Logo */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-5">
+          <h2 className="text-xl font-semibold border-b border-border pb-4">Display Logo</h2>
+          <p className="text-sm text-muted-foreground">Shown in the bottom-left of the kiosk footer. Recommended: transparent PNG, max height 80px.</p>
+
+          {/* Preview */}
+          <div className="flex items-center justify-center h-28 rounded-xl border-2 border-dashed border-border bg-black/30">
+            {localSettings.logo_url ? (
+              <img src={localSettings.logo_url} alt="Logo preview" className="max-h-20 max-w-full object-contain" />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <ImageIcon className="w-8 h-8 opacity-30" />
+                <span className="text-xs">No logo uploaded</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => logoInputRef.current?.click()}
+              disabled={logoUploading}
+            >
+              {logoUploading
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading…</>
+                : <><Upload className="w-4 h-4 mr-2" /> Upload Logo</>
+              }
+            </Button>
+            {localSettings.logo_url && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setLocalSettings(s => ({ ...s, logo_url: "" }))}
+                title="Remove logo"
+              >
+                <X className="w-4 h-4 text-destructive" />
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Or paste a URL</Label>
+            <Input
+              placeholder="https://example.com/logo.png"
+              value={localSettings.logo_url}
+              onChange={e => setLocalSettings(s => ({ ...s, logo_url: e.target.value }))}
+            />
           </div>
         </div>
 
