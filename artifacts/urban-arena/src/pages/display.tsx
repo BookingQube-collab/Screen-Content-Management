@@ -303,6 +303,19 @@ export default function DisplayPage() {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.4 }}
               >
+                {act.logoUrl && (
+                  <img
+                    src={act.logoUrl}
+                    alt={act.name + " logo"}
+                    style={{
+                      maxHeight: "clamp(40px,7vw,100px)",
+                      maxWidth: "clamp(80px,18vw,220px)",
+                      objectFit: "contain",
+                      marginBottom: "clamp(10px,2%,22px)",
+                      filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.6))",
+                    }}
+                  />
+                )}
                 <h1
                   className="font-black text-white leading-none"
                   style={{ fontSize: "clamp(28px,6vw,78px)", marginBottom: "clamp(10px,2%,22px)", textShadow: "0 4px 24px rgba(0,0,0,0.7)" }}

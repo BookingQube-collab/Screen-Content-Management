@@ -45,6 +45,7 @@ export default function AdminActivityForm() {
     termsAndConditions: "",
     isActive: true,
     isFeatured: false,
+    logoUrl: null as string | null,
     heroImageUrl: null as string | null,
     heroVideoUrl: null as string | null,
     cardImageUrl: null as string | null,
@@ -75,6 +76,7 @@ export default function AdminActivityForm() {
         termsAndConditions: existingData.termsAndConditions || "",
         isActive: existingData.isActive,
         isFeatured: existingData.isFeatured,
+        logoUrl: existingData.logoUrl || null,
         heroImageUrl: existingData.heroImageUrl || null,
         heroVideoUrl: existingData.heroVideoUrl || null,
         cardImageUrl: existingData.cardImageUrl || null,
@@ -274,13 +276,20 @@ export default function AdminActivityForm() {
                  onChange={(url) => setFormData({...formData, heroImageUrl: url})}
                />
              </div>
-             <div className="pt-6 border-t border-border">
+             <div className="pt-6 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-8">
                <MediaUpload 
                  label="Card Thumbnail Image" 
                  type="image"
                  description="16:9 Landscape image for the slider cards."
                  value={formData.cardImageUrl}
                  onChange={(url) => setFormData({...formData, cardImageUrl: url})}
+               />
+               <MediaUpload
+                 label="Activity Logo"
+                 type="image"
+                 description="Transparent PNG logo shown on the kiosk slide. Recommended max height 120px."
+                 value={formData.logoUrl}
+                 onChange={(url) => setFormData({...formData, logoUrl: url})}
                />
              </div>
           </div>
