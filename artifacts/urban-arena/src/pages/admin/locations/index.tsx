@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -6,20 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, MapPin, Upload, X, ImageIcon } from "lucide-react";
 
-interface Location { id: number; name: string; code: string; address?: string | null; isActive: boolean; }
+interface Location { id: number; name: string; code: string; address?: string | null; logoUrl?: string | null; isActive: boolean; }
 
-const EMPTY: Omit<Location, "id"> = { name: "", code: "", address: "", isActive: true };
+const EMPTY: Omit<Location, "id"> = { name: "", code: "", address: "", logoUrl: "", isActive: true };
 
 export default function AdminLocations() {
   const { authHeaders } = useRequireAuth();
-  const [rows, setRows]       = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen]       = useState(false);
-  const [editing, setEditing] = useState<Location | null>(null);
-  const [form, setForm]       = useState<Omit<Location, "id">>(EMPTY);
-  const [saving, setSaving]   = useState(false);
+  const [rows, setRows]           = useState<Location[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [open, setOpen]           = useState(false);
+  const [editing, setEditing]     = useState<Location | null>(null);
+  const [form, setForm]           = useState<Omit<Location, "id">>(EMPTY);
+  const [saving, setSaving]       = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef              = useRef<HTMLInputElement>(null);
 
   const load = () => {
     setLoading(true);
@@ -30,13 +32,44 @@ export default function AdminLocations() {
   useEffect(load, []);
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
-  const openEdit = (l: Location) => { setEditing(l); setForm({ name: l.name, code: l.code, address: l.address ?? "", isActive: l.isActive }); setOpen(true); };
+  const openEdit = (l: Location) => {
+    setEditing(l);
+    setForm({ name: l.name, code: l.code, address: l.address ?? "", logoUrl: l.logoUrl ?? "", isActive: l.isActive });
+    setOpen(true);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/uploads/image", {
+        method: "POST",
+        headers: authHeaders,
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      setForm(f => ({ ...f, logoUrl: url }));
+    } catch {
+      alert("Logo upload failed. Please try again.");
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
 
   const save = async () => {
     setSaving(true);
     const url    = editing ? `/api/admin/locations/${editing.id}` : "/api/admin/locations";
     const method = editing ? "PATCH" : "POST";
-    await fetch(url, { method, headers: { ...authHeaders, "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    await fetch(url, {
+      method,
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, logoUrl: form.logoUrl || null }),
+    });
     setSaving(false);
     setOpen(false);
     load();
@@ -74,6 +107,7 @@ export default function AdminLocations() {
                   <th className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Code</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Address</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logo</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
                   <th className="px-6 py-3" />
                 </tr>
@@ -84,6 +118,12 @@ export default function AdminLocations() {
                     <td className="px-6 py-4 font-medium">{l.name}</td>
                     <td className="px-6 py-4 font-mono text-sm text-muted-foreground">{l.code}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{l.address || "—"}</td>
+                    <td className="px-6 py-4">
+                      {l.logoUrl
+                        ? <img src={l.logoUrl} alt="logo" className="h-8 max-w-[80px] object-contain" />
+                        : <span className="text-xs text-muted-foreground">—</span>
+                      }
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${l.isActive ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
                         {l.isActive ? "Active" : "Inactive"}
@@ -112,6 +152,30 @@ export default function AdminLocations() {
             <div className="space-y-2"><Label>Name</Label><Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Urban Arena" /></div>
             <div className="space-y-2"><Label>Code</Label><Input required value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. UA-MAIN" /></div>
             <div className="space-y-2"><Label>Address (optional)</Label><Input value={form.address ?? ""} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Street, City" /></div>
+
+            {/* Logo upload */}
+            <div className="space-y-2">
+              <Label>Location Logo</Label>
+              <div className="flex items-center justify-center h-20 rounded-xl border-2 border-dashed border-border bg-secondary/30">
+                {form.logoUrl
+                  ? <img src={form.logoUrl} alt="Logo" className="max-h-16 max-w-full object-contain" />
+                  : <div className="flex flex-col items-center gap-1 text-muted-foreground"><ImageIcon className="w-6 h-6 opacity-30" /><span className="text-xs">No logo</span></div>
+                }
+              </div>
+              <div className="flex gap-2">
+                <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
+                  {logoUploading ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Uploading…</> : <><Upload className="w-3.5 h-3.5 mr-1.5" />Upload Logo</>}
+                </Button>
+                {form.logoUrl && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setForm(f => ({ ...f, logoUrl: "" }))}>
+                    <X className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                )}
+              </div>
+              <Input value={form.logoUrl ?? ""} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="Or paste a URL…" className="text-xs" />
+            </div>
+
             <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
               <Label>Active</Label>
               <Switch checked={form.isActive} onCheckedChange={v => setForm(f => ({ ...f, isActive: v }))} />
