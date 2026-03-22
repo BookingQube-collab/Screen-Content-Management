@@ -12,6 +12,11 @@ import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/admin/MediaUpload";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 
+interface ApiLocation { id: number; name: string; }
+interface ApiScreen   { id: number; name: string; locationId: number | null; moduleType: string; }
+
+const MODULE_TYPES = ["","activity-screen","promo-slider","vertical-kiosk","welcome-screen"];
+
 export default function AdminActivityForm() {
   const { authHeaders } = useRequireAuth();
   const [, params] = useRoute("/admin/activities/:id/edit");
@@ -20,6 +25,14 @@ export default function AdminActivityForm() {
   
   const isEdit = !!params?.id;
   const id = params?.id ? parseInt(params.id) : 0;
+
+  // Locations & Screens for assignment dropdowns
+  const [locations, setLocations] = useState<ApiLocation[]>([]);
+  const [screens, setScreens]     = useState<ApiScreen[]>([]);
+  useEffect(() => {
+    fetch("/api/admin/locations", { headers: authHeaders }).then(r => r.json()).then(setLocations).catch(() => {});
+    fetch("/api/admin/screens",   { headers: authHeaders }).then(r => r.json()).then(setScreens).catch(() => {});
+  }, []);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -35,7 +48,14 @@ export default function AdminActivityForm() {
     heroImageUrl: null as string | null,
     heroVideoUrl: null as string | null,
     cardImageUrl: null as string | null,
-    sortOrder: 0
+    sortOrder: 0,
+    // Screen assignment (optional)
+    locationId:       null as number | null,
+    screenId:         null as number | null,
+    moduleType:       "" as string,
+    isOfflineEnabled: false,
+    validFrom:        "" as string,
+    validTo:          "" as string,
   });
 
   const { data: existingData, isLoading: isLoadingExisting } = useGetActivity(id, {
@@ -58,7 +78,13 @@ export default function AdminActivityForm() {
         heroImageUrl: existingData.heroImageUrl || null,
         heroVideoUrl: existingData.heroVideoUrl || null,
         cardImageUrl: existingData.cardImageUrl || null,
-        sortOrder: existingData.sortOrder
+        sortOrder: existingData.sortOrder,
+        locationId: existingData.locationId ?? null,
+        screenId:   existingData.screenId   ?? null,
+        moduleType: existingData.moduleType  ?? "",
+        isOfflineEnabled: existingData.isOfflineEnabled ?? false,
+        validFrom: existingData.validFrom ? existingData.validFrom.slice(0, 16) : "",
+        validTo:   existingData.validTo   ? existingData.validTo.slice(0, 16)   : "",
       });
     }
   }, [existingData, isEdit]);
@@ -158,6 +184,75 @@ export default function AdminActivityForm() {
             <div className="space-y-2">
               <Label>Specific Terms & Conditions (Optional)</Label>
               <Textarea value={formData.termsAndConditions} onChange={e => setFormData({...formData, termsAndConditions: e.target.value})} rows={2} placeholder="Overrides global terms if provided" />
+            </div>
+          </div>
+
+          {/* ── Screen Assignment (optional) ── */}
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-sm space-y-5">
+            <h2 className="text-xl font-semibold border-b border-border pb-4">Screen Assignment <span className="text-sm font-normal text-muted-foreground">(Optional)</span></h2>
+            <p className="text-sm text-muted-foreground -mt-2">Leave blank to show on all screens everywhere.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <select
+                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
+                  value={formData.locationId ?? ""}
+                  onChange={e => {
+                    const id = e.target.value ? parseInt(e.target.value) : null;
+                    setFormData(f => ({ ...f, locationId: id, screenId: null }));
+                  }}
+                >
+                  <option value="">— All locations —</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Specific Screen / TV</Label>
+                <select
+                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
+                  value={formData.screenId ?? ""}
+                  onChange={e => setFormData(f => ({ ...f, screenId: e.target.value ? parseInt(e.target.value) : null }))}
+                >
+                  <option value="">— All screens —</option>
+                  {(formData.locationId
+                    ? screens.filter(s => s.locationId === formData.locationId)
+                    : screens
+                  ).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Module Type</Label>
+                <select
+                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
+                  value={formData.moduleType}
+                  onChange={e => setFormData(f => ({ ...f, moduleType: e.target.value }))}
+                >
+                  <option value="">— Any module —</option>
+                  {MODULE_TYPES.filter(Boolean).map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border h-fit self-end">
+                <div>
+                  <Label className="text-base">Offline Available</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Cache for offline display</p>
+                </div>
+                <Switch checked={formData.isOfflineEnabled} onCheckedChange={v => setFormData(f => ({ ...f, isOfflineEnabled: v }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label>Show From (optional)</Label>
+                <Input type="datetime-local" value={formData.validFrom} onChange={e => setFormData(f => ({ ...f, validFrom: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Show Until (optional)</Label>
+                <Input type="datetime-local" value={formData.validTo} onChange={e => setFormData(f => ({ ...f, validTo: e.target.value }))} />
+              </div>
             </div>
           </div>
 

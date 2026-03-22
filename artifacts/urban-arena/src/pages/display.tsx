@@ -1,16 +1,42 @@
 import { useState, useEffect, useRef } from "react";
 import { useListDisplayActivities } from "@workspace/api-client-react";
-import { useAppSettings }            from "@/hooks/use-app-settings";
-import { motion, AnimatePresence }   from "framer-motion";
-import { Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { useAppSettings }           from "@/hooks/use-app-settings";
+import { useScreenConfig }          from "@/hooks/use-screen-config";
+import { OfflineContentService }    from "@/services/offline-content";
+import { motion, AnimatePresence }  from "framer-motion";
+import { Loader2, Maximize2, Minimize2, Settings } from "lucide-react";
+import { useLocation } from "wouter";
 
 const PURPLE = "#7C3AED";
 const PINK   = "#EC4899";
 const DARK   = "#0c0820";
 
 export default function DisplayPage() {
-  const { data: activities, isLoading: loadAct } = useListDisplayActivities();
-  const { settings,         isLoading: loadSet } = useAppSettings();
+  const { data: rawActivities, isLoading: loadAct } = useListDisplayActivities();
+  const { settings,            isLoading: loadSet }  = useAppSettings();
+  const { config } = useScreenConfig();
+  const [, setLocation] = useLocation();
+
+  // Apply client-side screen/location filtering
+  const activities = (() => {
+    if (!rawActivities) return rawActivities;
+    if (!config.screenId && !config.locationId) return rawActivities;
+    return rawActivities.filter(a => {
+      const hasAssignment = (a.locationId != null) || (a.screenId != null);
+      if (!hasAssignment) return true;
+      if (config.screenId   && a.screenId   === config.screenId)   return true;
+      if (config.locationId && a.locationId === config.locationId) return true;
+      return false;
+    });
+  })();
+
+  // Cache activities for offline use after load
+  useEffect(() => {
+    if (rawActivities?.length) {
+      OfflineContentService.cacheActivities(rawActivities as any[]);
+    }
+  }, [rawActivities]);
+
   const [idx, setIdx] = useState(0);
 
   const go = (next: number) => {
@@ -174,30 +200,43 @@ export default function DisplayPage() {
           </div>
         )}
 
-        {/* Fullscreen toggle — top-right corner */}
-        <button
-          onClick={toggleFullscreen}
-          className="absolute flex items-center justify-center"
-          style={{
-            top: "clamp(8px,1.2vw,18px)",
-            right: "clamp(8px,1.2vw,18px)",
-            zIndex: 20,
-            width: "clamp(28px,3vw,44px)",
-            height: "clamp(28px,3vw,44px)",
-            borderRadius: 8,
-            background: "rgba(0,0,0,0.45)",
-            border: "1px solid rgba(255,255,255,0.18)",
-            color: "rgba(255,255,255,0.80)",
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-          }}
-          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        {/* Top-right corner controls */}
+        <div
+          className="absolute flex items-center gap-2"
+          style={{ top: "clamp(8px,1.2vw,18px)", right: "clamp(8px,1.2vw,18px)", zIndex: 20 }}
         >
-          {isFullscreen
-            ? <Minimize2 style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
-            : <Maximize2 style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
-          }
-        </button>
+          {/* Screen config button */}
+          <button
+            onClick={() => setLocation("/display/config")}
+            className="flex items-center justify-center"
+            style={{
+              width: "clamp(28px,3vw,44px)", height: "clamp(28px,3vw,44px)",
+              borderRadius: 8, background: "rgba(0,0,0,0.45)",
+              border: "1px solid rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.80)",
+              cursor: "pointer", backdropFilter: "blur(6px)",
+            }}
+            title="Screen configuration"
+          >
+            <Settings style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
+          </button>
+          {/* Fullscreen toggle */}
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center justify-center"
+            style={{
+              width: "clamp(28px,3vw,44px)", height: "clamp(28px,3vw,44px)",
+              borderRadius: 8, background: "rgba(0,0,0,0.45)",
+              border: "1px solid rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.80)",
+              cursor: "pointer", backdropFilter: "blur(6px)",
+            }}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen
+              ? <Minimize2 style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
+              : <Maximize2 style={{ width: "clamp(12px,1.4vw,20px)", height: "clamp(12px,1.4vw,20px)" }} />
+            }
+          </button>
+        </div>
 
         {/* ── Text overlay, watermark & gradients — hidden when video is playing ── */}
         {!act.heroVideoUrl && (

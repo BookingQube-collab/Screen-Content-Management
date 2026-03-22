@@ -25,15 +25,25 @@ Urban Arena — a production-style kiosk display system with a cinematic public 
 
 ### Public Display
 - `/` → redirects to `/display`
-- `/display` → Cinematic portrait kiosk display with auto-sliding activity carousel
+- `/display` → Cinematic kiosk display with auto-sliding activity carousel; top-right corner has Settings + Fullscreen buttons
+- `/display/config` → Device identity configuration (screen/location assignment, slide interval)
 
 ### Admin Panel
 - `/admin/login` → Admin login (credentials: admin@urbanarana.com / admin123)
 - `/admin/dashboard` → Dashboard with activity stats
 - `/admin/activities` → Activity list (CRUD)
 - `/admin/activities/new` → Create new activity
-- `/admin/activities/:id/edit` → Edit activity + media upload
+- `/admin/activities/:id/edit` → Edit activity + media upload + Screen Assignment section
+- `/admin/locations` → Manage physical venues (CRUD dialog-based)
+- `/admin/screens` → Manage individual TVs/kiosks (CRUD dialog-based, assigned to locations)
 - `/admin/settings` → Branding and display settings
+
+### API Endpoints (new)
+- `GET/POST /api/admin/locations` — location CRUD (auth required)
+- `PATCH/DELETE /api/admin/locations/:id` — location update/delete (auth required)
+- `GET/POST /api/admin/screens` — screen CRUD (auth required)
+- `PATCH/DELETE /api/admin/screens/:id` — screen update/delete (auth required)
+- `GET /api/activities/display?screenId=&locationId=` — filtered display list (public)
 
 ## Structure
 
@@ -52,7 +62,7 @@ artifacts-monorepo/
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
-│       └── src/schema/     # admin-users, activities, settings
+│       └── src/schema/     # admin-users, activities, settings, locations, screens
 └── scripts/
     └── src/seed.ts         # Database seed script
 ```

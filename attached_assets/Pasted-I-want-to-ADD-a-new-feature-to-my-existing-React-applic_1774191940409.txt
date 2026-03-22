@@ -1,0 +1,232 @@
+I want to ADD a new feature to my existing React application without changing or breaking the current logic, UI flow, admin panel behavior, or existing code structure unnecessarily.
+
+Important rule:
+- Do NOT rewrite the existing system
+- Do NOT replace current upload logic unless absolutely required
+- Do NOT change current modules unless integrating extension points
+- Build this as an additional feature layer on top of the existing app
+- Reuse current components/services where possible
+- Follow minimum-change integration
+
+My current app:
+- React-based web app
+- Existing admin panel already uploads images and videos
+- Existing display module already shows media and related content
+- I want to keep all current behavior working exactly as it is
+
+New feature I want:
+I want to add an OFFLINE CONTENT MANAGEMENT + SCREEN ASSIGNMENT feature.
+
+Main goal:
+1. Keep current online/admin workflow intact
+2. Add the ability to save uploaded content for offline use
+3. Add a new option to assign each uploaded content item to a specific location/screen/TV module
+4. On each device/screen, only assigned content should display
+5. The application should continue running even without internet using previously saved content
+6. This should be designed so later it can be wrapped into Capacitor / Android APK for Android TV and tablet
+
+Feature requirements:
+
+A. Do not break existing logic
+- Existing upload flow must remain working
+- Existing display flow must remain working
+- Existing APIs and current data model should remain supported
+- Add new fields and new storage layer in a backward-compatible way
+- Any new feature should be optional and not affect old records
+
+B. Add new fields in upload/admin panel
+While uploading image/video/content, add these optional fields:
+- location
+- screen name
+- tv module / display module
+- device group
+- priority / sort order
+- active/inactive
+- offline available toggle
+- start date/time optional
+- end date/time optional
+
+Suggested field structure:
+- title
+- description
+- termsAndConditions
+- ageLimit
+- mediaType
+- mediaUrl (existing)
+- mediaLocalPath (new)
+- locationId (new)
+- screenId (new)
+- moduleType (new)
+- sortOrder (new)
+- isOfflineEnabled (new)
+- isActive (existing or new)
+- validFrom (optional)
+- validTo (optional)
+- updatedAt
+
+C. Add master management section
+Create new admin sections for:
+1. Locations
+2. Screens / TVs
+3. Module assignment
+
+Example:
+Location:
+- Urban Arena
+- Vendome
+- Doha Mall
+
+Screen / TV:
+- Kids Zone TV 1
+- Entrance TV
+- Counter Tablet 1
+- Bowling TV 2
+
+Module type:
+- promo-slider
+- activity-screen
+- vertical-kiosk
+- welcome-screen
+
+Each uploaded content item should be assignable to one or multiple:
+- locations
+- screens
+- module types
+
+D. Add screen filtering logic
+On app startup or in display mode, the application should know which screen it is running on.
+
+Add a configuration option such as:
+- screen code
+- screen id
+- device id
+- module type
+
+Then show only content assigned to that screen/location/module.
+
+Example:
+If device is configured as:
+- location = Urban Arena
+- screen = TV-Entrance-01
+- module = promo-slider
+
+Then only matching active content should display.
+
+E. Add offline layer as a new feature
+Do NOT replace current online storage logic.
+Instead, add a new offline content feature layer.
+
+Expected behavior:
+- When content is uploaded and marked offline-enabled, app should also store a local offline copy reference
+- App should cache/download media and metadata locally
+- If internet is unavailable, app should use locally saved content
+- If internet is available, app can continue to use current logic and optionally sync offline content
+- Existing records without offline config should still work normally
+
+F. Storage architecture
+Implement this as an adapter/service layer, not hardcoded inside components.
+
+Create services such as:
+- ContentService
+- ScreenAssignmentService
+- OfflineStorageService
+- SyncService
+
+Methods can include:
+- createContent()
+- updateContent()
+- assignContentToScreen()
+- getContentForScreen()
+- cacheContentOffline()
+- getOfflineContentForScreen()
+- syncAssignedContent()
+- getCurrentScreenConfig()
+
+Use abstraction so later storage can switch between:
+- current online/backend logic
+- browser IndexedDB/local persistence
+- Capacitor Filesystem / Android local storage
+
+G. Device/screen configuration feature
+Add a new settings/config page or config file for each device:
+- device name
+- location
+- screen name
+- module type
+- orientation
+- autoplay settings
+- sync preference
+
+This allows same app build to run on different screens, but show different content depending on configuration.
+
+H. Display logic
+Current display module must remain intact, but enhance it with:
+- assigned-content filtering
+- offline fallback
+- local media loading
+- loading state
+- fallback placeholder if media missing
+- optional last sync timestamp
+- optional offline mode indicator
+
+I. Compatibility goals
+- Android TV
+- Android tablet
+- future Capacitor APK conversion
+- kiosk/display usage
+- long running sessions
+- autoplay image/video support
+
+J. Important implementation constraints
+- Do not rewrite from scratch
+- Do not refactor unrelated code
+- Do not remove existing APIs
+- Do not break existing admin uploads
+- Add feature flags or optional paths where needed
+- Use minimum-change integration
+- Keep code modular and scalable
+
+K. Suggested rollout
+Please implement in phases inside current project:
+
+Phase 1:
+- analyze current project structure
+- identify existing upload flow
+- identify existing display flow
+- identify where media URLs are stored
+- identify least invasive integration points
+
+Phase 2:
+- add master data models for locations/screens/modules
+- add new optional admin fields
+- add assignment mapping
+
+Phase 3:
+- add offline storage service
+- add metadata caching
+- add media caching approach compatible with current web setup
+
+Phase 4:
+- add screen-based display filtering
+- add offline fallback logic
+
+Phase 5:
+- prepare architecture for future Capacitor Android integration
+
+L. Deliverables I want
+1. Exact code changes with minimum disturbance to existing logic
+2. New files/services/components only where needed
+3. Schema/model additions
+4. Admin panel enhancement for location/screen/module assignment
+5. Offline caching feature as an optional extension
+6. Screen configuration feature
+7. Clear explanation of how each screen can be configured separately
+8. Final recommendation for moving this to Android TV/tablet APK later
+
+Before making changes, first inspect my current codebase and explain:
+- what existing modules should remain untouched
+- where the safest extension points are
+- what new files/services should be added
+- what exact minimum-change strategy you will use
+
+Then implement the feature.

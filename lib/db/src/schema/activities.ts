@@ -18,6 +18,13 @@ export const activitiesTable = pgTable("activities", {
   isFeatured: boolean("is_featured").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   ctaText: text("cta_text").notNull().default("Explore Now"),
+  // Screen assignment fields (optional — null means show everywhere)
+  locationId: integer("location_id"),
+  screenId: integer("screen_id"),
+  moduleType: text("module_type"),
+  isOfflineEnabled: boolean("is_offline_enabled").notNull().default(false),
+  validFrom: timestamp("valid_from", { withTimezone: true }),
+  validTo: timestamp("valid_to", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

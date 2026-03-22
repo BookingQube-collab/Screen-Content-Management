@@ -3,13 +3,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 
 // Pages
-import DisplayPage from "@/pages/display";
-import AdminLogin from "@/pages/admin/login";
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminActivities from "@/pages/admin/activities";
-import AdminActivityForm from "@/pages/admin/activities/form";
-import AdminSettings from "@/pages/admin/settings";
-import NotFound from "@/pages/not-found";
+import DisplayPage        from "@/pages/display";
+import DisplayConfigPage  from "@/pages/display-config";
+import AdminLogin         from "@/pages/admin/login";
+import AdminDashboard     from "@/pages/admin/dashboard";
+import AdminActivities    from "@/pages/admin/activities";
+import AdminActivityForm  from "@/pages/admin/activities/form";
+import AdminSettings      from "@/pages/admin/settings";
+import AdminLocations     from "@/pages/admin/locations";
+import AdminScreens       from "@/pages/admin/screens";
+import NotFound           from "@/pages/not-found";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,27 +26,23 @@ const queryClient = new QueryClient({
 function Router() {
   return (
     <Switch>
-      {/* Root redirects to display intuitively */}
-      <Route path="/" component={DisplayPage} />
-      
-      {/* Public Kiosk Display */}
-      <Route path="/display" component={DisplayPage} />
-      
-      {/* Admin Panel */}
-      <Route path="/admin/login" component={AdminLogin} />
-      
-      {/* Note: In a real app we'd wrap these in a <ProtectedRoute> component,
-          but we are using a custom hook useRequireAuth inside the layouts/pages to redirect */}
-      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/"               component={DisplayPage} />
+      <Route path="/display"        component={DisplayPage} />
+      <Route path="/display/config" component={DisplayConfigPage} />
+
+      <Route path="/admin/login"    component={AdminLogin} />
+      <Route path="/admin"          component={AdminDashboard} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
-      
-      <Route path="/admin/activities" component={AdminActivities} />
-      <Route path="/admin/activities/new" component={AdminActivityForm} />
+
+      <Route path="/admin/activities"        component={AdminActivities} />
+      <Route path="/admin/activities/new"    component={AdminActivityForm} />
       <Route path="/admin/activities/:id/edit" component={AdminActivityForm} />
-      
+
+      <Route path="/admin/locations" component={AdminLocations} />
+      <Route path="/admin/screens"   component={AdminScreens} />
+
       <Route path="/admin/settings" component={AdminSettings} />
-      
-      {/* 404 Fallback */}
+
       <Route component={NotFound} />
     </Switch>
   );

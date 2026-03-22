@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Film, Settings, LogOut, ActivitySquare, X } from "lucide-react";
+import { LayoutDashboard, Film, Settings, LogOut, ActivitySquare, X, MapPin, Tv } from "lucide-react";
 import { useRequireAuth } from "@/hooks/use-auth";
 
 interface AdminSidebarProps {
@@ -11,9 +11,11 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
   const { logout } = useRequireAuth();
 
   const links = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/activities", label: "Activities", icon: Film },
-    { href: "/admin/settings", label: "Settings", icon: Settings },
+    { href: "/admin/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
+    { href: "/admin/activities", label: "Activities",  icon: Film },
+    { href: "/admin/locations",  label: "Locations",   icon: MapPin },
+    { href: "/admin/screens",    label: "Screens",     icon: Tv },
+    { href: "/admin/settings",   label: "Settings",    icon: Settings },
   ];
 
   return (
@@ -37,7 +39,7 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
         )}
       </div>
 
-      <nav className="flex-1 py-6 px-4 space-y-2">
+      <nav className="flex-1 py-6 px-4 space-y-1">
         {links.map((link) => {
           const isActive = location.startsWith(link.href);
           const Icon = link.icon;
