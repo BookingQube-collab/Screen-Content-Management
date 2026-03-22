@@ -14,6 +14,7 @@ export interface AppSettings {
   display_title_part2: string;
   admin_title_part1: string;
   admin_title_part2: string;
+  logo_url: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   display_title_part2: "ARENA",
   admin_title_part1: "Arena",
   admin_title_part2: "OS",
+  logo_url: "",
 };
 
 export function useAppSettings() {

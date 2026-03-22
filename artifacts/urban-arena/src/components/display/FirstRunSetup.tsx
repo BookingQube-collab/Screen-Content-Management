@@ -10,9 +10,10 @@ interface Props {
   onBack?: () => void;
   titlePart1?: string;
   titlePart2?: string;
+  showAddress?: boolean;
 }
 
-export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2 = "ARENA" }: Props) {
+export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2 = "ARENA", showAddress = false }: Props) {
   const { saveConfig } = useScreenConfig();
   const [locations, setLocations] = useState<ApiLocation[]>([]);
   const [screens,   setScreens]   = useState<ApiScreen[]>([]);
@@ -200,6 +201,15 @@ export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2
           </>
         )}
       </div>
+
+      {/* Device address — only shown in config context */}
+      {showAddress && (
+        <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
+          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.72rem", letterSpacing: "0.05em", fontFamily: "monospace" }}>
+            {typeof window !== "undefined" ? window.location.origin + "/display/config" : ""}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

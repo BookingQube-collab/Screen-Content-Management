@@ -389,6 +389,21 @@ export default function DisplayPage() {
                 {act.termsAndConditions}
               </p>
             )}
+
+            {/* Logo — right-aligned within the left 70% section */}
+            {settings.logo_url && (
+              <img
+                src={settings.logo_url}
+                alt="Logo"
+                style={{
+                  maxHeight: "clamp(28px,4.5vw,64px)",
+                  maxWidth: "clamp(60px,8vw,120px)",
+                  objectFit: "contain",
+                  flexShrink: 0,
+                  marginLeft: "auto",
+                }}
+              />
+            )}
           </div>
 
           <StatCell num={act.name} unit="" label="Current Activity" accent />
