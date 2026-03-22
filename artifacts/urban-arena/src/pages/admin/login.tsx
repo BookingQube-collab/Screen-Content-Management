@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,22 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const [, setLocation] = useLocation();
   const { setToken } = useAuthToken();
+
+  const [titlePart1, setTitlePart1] = useState("Arena");
+  const [titlePart2, setTitlePart2] = useState("OS");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then((rows: { key: string; value: string }[]) => {
+        if (!Array.isArray(rows)) return;
+        const p1 = rows.find(r => r.key === "admin_title_part1")?.value;
+        const p2 = rows.find(r => r.key === "admin_title_part2")?.value;
+        if (p1) setTitlePart1(p1);
+        if (p2) setTitlePart2(p2);
+      })
+      .catch(() => {});
+  }, []);
 
   const { mutateAsync: login, isPending } = useAdminLogin();
 
@@ -30,7 +46,6 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative cinematic background elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-900/20 rounded-full blur-[120px] pointer-events-none" />
 
@@ -39,7 +54,9 @@ export default function AdminLogin() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-red-800 flex items-center justify-center shadow-lg shadow-primary/25 mb-4">
             <ActivitySquare className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-display font-bold">Arena<span className="text-primary">OS</span></h1>
+          <h1 className="text-3xl font-display font-bold">
+            {titlePart1}<span className="text-primary">{titlePart2}</span>
+          </h1>
           <p className="text-muted-foreground text-sm mt-2">Sign in to manage displays</p>
         </div>
 
@@ -62,7 +79,7 @@ export default function AdminLogin() {
               className="bg-background/50 border-border/50 focus:border-primary"
             />
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
