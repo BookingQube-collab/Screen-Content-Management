@@ -411,15 +411,11 @@ export default function DisplayPage() {
               </p>
             )}
 
-            {/* Logo row — settings + activity + location logos, right-aligned, each shown only if uploaded */}
+            {/* Logo row — settings + activity logos, right-aligned, each shown only if uploaded */}
             {(() => {
-              const locLogo = act.locationId
-                ? (locations.find(l => l.id === act.locationId)?.logoUrl ?? null)
-                : null;
               const logos = [
                 { src: settings.logo_url, alt: "Brand" },
                 { src: act.logoUrl,        alt: act.name },
-                { src: locLogo,            alt: "Location" },
               ].filter(l => l.src);
               if (!logos.length) return null;
               return (
