@@ -13,12 +13,13 @@ router.get("/admin/locations", async (_req, res): Promise<void> => {
 });
 
 router.post("/admin/locations", requireAuth, async (req, res): Promise<void> => {
-  const { name, code, address, isActive } = req.body;
+  const { name, code, address, logoUrl, isActive } = req.body;
   if (!name || !code) { res.status(400).json({ error: "name and code are required" }); return; }
   const [row] = await db.insert(locationsTable).values({
     name: String(name),
     code: String(code),
     address: address ? String(address) : null,
+    logoUrl: logoUrl ? String(logoUrl) : null,
     isActive: isActive !== undefined ? Boolean(isActive) : true,
   }).returning();
   res.status(201).json(row);
@@ -28,10 +29,11 @@ router.patch("/admin/locations/:id", requireAuth, async (req, res): Promise<void
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const updates: Record<string, unknown> = {};
-  const { name, code, address, isActive } = req.body;
+  const { name, code, address, logoUrl, isActive } = req.body;
   if (name     !== undefined) updates.name     = String(name);
   if (code     !== undefined) updates.code     = String(code);
   if (address  !== undefined) updates.address  = address ? String(address) : null;
+  if (logoUrl  !== undefined) updates.logoUrl  = logoUrl ? String(logoUrl) : null;
   if (isActive !== undefined) updates.isActive = Boolean(isActive);
   if (!Object.keys(updates).length) { res.status(400).json({ error: "No fields to update" }); return; }
   const [row] = await db.update(locationsTable).set(updates).where(eq(locationsTable.id, id)).returning();

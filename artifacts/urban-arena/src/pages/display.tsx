@@ -13,12 +13,23 @@ const PINK   = "#EC4899";
 const DARK   = "#0c0820";
 
 
+interface ApiLocation { id: number; name: string; code: string; logoUrl?: string | null; }
+
 export default function DisplayPage() {
   const { data: rawActivities, isLoading: loadAct } = useListDisplayActivities();
   const { settings,            isLoading: loadSet }  = useAppSettings();
   const { config, isConfigured, loaded: configLoaded } = useScreenConfig();
   const [, setLocation] = useLocation();
   const [showSetup, setShowSetup] = useState(false);
+  const [locations, setLocations] = useState<ApiLocation[]>([]);
+
+  // Fetch locations for logo lookup (public endpoint)
+  useEffect(() => {
+    fetch("/api/admin/locations")
+      .then(r => r.json())
+      .then(setLocations)
+      .catch(() => {});
+  }, []);
 
   // Show first-run setup when config is not yet set
   useEffect(() => {
@@ -211,21 +222,26 @@ export default function DisplayPage() {
           onWheel={onWheel}
         />
 
-        {/* Settings logo — top-left, shown on image & video when uploaded */}
-        {settings.logo_url && (
-          <div className="absolute z-10" style={{ top: "clamp(10px,1.5vw,22px)", left: "clamp(10px,1.5vw,22px)" }}>
-            <img
-              src={settings.logo_url}
-              alt="Logo"
-              style={{
-                maxHeight: "clamp(30px,4.5vw,64px)",
-                maxWidth:  "clamp(70px,10vw,140px)",
-                objectFit: "contain",
-                filter:    "drop-shadow(0 2px 8px rgba(0,0,0,0.7))",
-              }}
-            />
-          </div>
-        )}
+        {/* Location logo — top-left corner, shown when the activity's location has a logo */}
+        {(() => {
+          const locLogo = act.locationId
+            ? (locations.find(l => l.id === act.locationId)?.logoUrl ?? null)
+            : null;
+          return locLogo ? (
+            <div className="absolute z-10" style={{ top: "clamp(10px,1.5vw,22px)", left: "clamp(10px,1.5vw,22px)" }}>
+              <img
+                src={locLogo}
+                alt="Location logo"
+                style={{
+                  maxHeight: "clamp(30px,4.5vw,64px)",
+                  maxWidth:  "clamp(70px,10vw,140px)",
+                  objectFit: "contain",
+                  filter:    "drop-shadow(0 2px 8px rgba(0,0,0,0.7))",
+                }}
+              />
+            </div>
+          ) : null;
+        })()}
 
         {/* Hidden tap zone — top-left corner, invisible, 5 taps = settings */}
         <div
@@ -395,20 +411,34 @@ export default function DisplayPage() {
               </p>
             )}
 
-            {/* Activity logo — right-aligned in the footer stats section */}
-            {act.logoUrl && (
-              <img
-                src={act.logoUrl}
-                alt={act.name + " logo"}
-                style={{
-                  maxHeight: "clamp(28px,4.5vw,64px)",
-                  maxWidth: "clamp(60px,8vw,120px)",
-                  objectFit: "contain",
-                  flexShrink: 0,
-                  marginLeft: "auto",
-                }}
-              />
-            )}
+            {/* Logo row — settings + activity + location logos, right-aligned, each shown only if uploaded */}
+            {(() => {
+              const locLogo = act.locationId
+                ? (locations.find(l => l.id === act.locationId)?.logoUrl ?? null)
+                : null;
+              const logos = [
+                { src: settings.logo_url, alt: "Brand" },
+                { src: act.logoUrl,        alt: act.name },
+                { src: locLogo,            alt: "Location" },
+              ].filter(l => l.src);
+              if (!logos.length) return null;
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px,1.2vw,18px)", flexShrink: 0, marginLeft: "auto" }}>
+                  {logos.map((l, i) => (
+                    <img
+                      key={i}
+                      src={l.src!}
+                      alt={l.alt}
+                      style={{
+                        maxHeight: "clamp(24px,4vw,56px)",
+                        maxWidth:  "clamp(48px,7vw,100px)",
+                        objectFit: "contain",
+                      }}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           <StatCell num={act.name} unit="" label="Current Activity" accent />

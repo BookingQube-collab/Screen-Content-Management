@@ -7,6 +7,7 @@ export const locationsTable = pgTable("locations", {
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   address: text("address"),
+  logoUrl: text("logo_url"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
