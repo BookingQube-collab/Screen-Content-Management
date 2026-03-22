@@ -3,46 +3,49 @@ import { useLocation } from "wouter";
 import { useScreenConfig } from "@/hooks/use-screen-config";
 import { Monitor, MapPin, Tv, Settings, Check, Trash2, ArrowLeft } from "lucide-react";
 
-const MODULE_TYPES = [
-  { value: "",                label: "All / Unfiltered" },
-  { value: "activity-screen", label: "Activity Screen" },
-  { value: "promo-slider",    label: "Promo Slider" },
-  { value: "vertical-kiosk",  label: "Vertical Kiosk" },
-  { value: "welcome-screen",  label: "Welcome Screen" },
-];
-
 interface ApiLocation { id: number; name: string; code: string; }
 interface ApiScreen   { id: number; name: string; code: string; locationId: number | null; moduleType: string; }
 
 export default function DisplayConfigPage() {
-  const { config, saveConfig, clearConfig } = useScreenConfig();
-  const [, setLocation] = useLocation();
+  const { config, saveConfig, clearConfig, loaded } = useScreenConfig();
+  const [, setLoc] = useLocation();
   const [saved, setSaved] = useState(false);
 
   const [locations, setLocations] = useState<ApiLocation[]>([]);
   const [screens, setScreens]     = useState<ApiScreen[]>([]);
 
   const [form, setForm] = useState({
-    deviceName:   config.deviceName,
-    locationId:   config.locationId as number | null,
-    locationName: config.locationName,
-    screenId:     config.screenId as number | null,
-    screenName:   config.screenName,
-    moduleType:   config.moduleType,
-    orientation:  config.orientation as "landscape" | "portrait",
-    autoplay:     config.autoplay,
-    slideInterval:config.slideInterval,
+    deviceName:   "",
+    locationId:   null as number | null,
+    locationName: "",
+    screenId:     null as number | null,
+    screenName:   "",
+    moduleType:   "",
+    orientation:  "landscape" as "landscape" | "portrait",
+    autoplay:     true,
+    slideInterval: 8,
   });
 
-  const token = localStorage.getItem("admin_token");
-  const headers: Record<string, string> = token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
-
+  // Sync form from saved config once it's loaded from localStorage
   useEffect(() => {
-    if (!token) return;
-    fetch("/api/admin/locations", { headers }).then(r => r.json()).then(setLocations).catch(() => {});
-    fetch("/api/admin/screens",   { headers }).then(r => r.json()).then(setScreens).catch(() => {});
+    if (!loaded) return;
+    setForm({
+      deviceName:   config.deviceName   || "",
+      locationId:   config.locationId   ?? null,
+      locationName: config.locationName || "",
+      screenId:     config.screenId     ?? null,
+      screenName:   config.screenName   || "",
+      moduleType:   config.moduleType   || "",
+      orientation:  (config.orientation as "landscape" | "portrait") || "landscape",
+      autoplay:     config.autoplay     ?? true,
+      slideInterval: config.slideInterval ?? 8,
+    });
+  }, [loaded]);
+
+  // Fetch locations + screens — these endpoints are now public
+  useEffect(() => {
+    fetch("/api/admin/locations").then(r => r.json()).then(setLocations).catch(() => {});
+    fetch("/api/admin/screens").then(r => r.json()).then(setScreens).catch(() => {});
   }, []);
 
   const filteredScreens = form.locationId
@@ -52,7 +55,10 @@ export default function DisplayConfigPage() {
   const handleSave = () => {
     saveConfig(form);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => {
+      setSaved(false);
+      setLoc("/display");
+    }, 1200);
   };
 
   const handleClear = () => {
@@ -63,11 +69,13 @@ export default function DisplayConfigPage() {
     });
   };
 
+  const sel = "bg-[#1a0f3a] text-white";
+
   return (
     <div className="min-h-screen bg-[#0c0820] text-white flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-lg">
         <button
-          onClick={() => setLocation("/display")}
+          onClick={() => setLoc("/display")}
           className="flex items-center gap-2 text-white/50 hover:text-white mb-8 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Display
@@ -86,7 +94,7 @@ export default function DisplayConfigPage() {
         <div className="space-y-5">
           {/* Device name */}
           <div>
-            <label className="text-xs uppercase tracking-widest text-white/40 mb-2 block">Device Name</label>
+            <label className="text-xs uppercase tracking-widest text-white/40 mb-2 block">Device Name (optional)</label>
             <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
               <Monitor className="w-4 h-4 text-violet-400 flex-none" />
               <input
@@ -112,9 +120,9 @@ export default function DisplayConfigPage() {
                   setForm(f => ({ ...f, locationId: id, locationName: loc?.name ?? "", screenId: null, screenName: "" }));
                 }}
               >
-                <option value="" className="bg-[#1a0f3a]">— Not set —</option>
+                <option value="" className={sel}>— Not set —</option>
                 {locations.map(l => (
-                  <option key={l.id} value={l.id} className="bg-[#1a0f3a]">{l.name} ({l.code})</option>
+                  <option key={l.id} value={l.id} className={sel}>{l.name} ({l.code})</option>
                 ))}
               </select>
             </div>
@@ -134,26 +142,9 @@ export default function DisplayConfigPage() {
                   setForm(f => ({ ...f, screenId: id, screenName: sc?.name ?? "" }));
                 }}
               >
-                <option value="" className="bg-[#1a0f3a]">— Not set —</option>
+                <option value="" className={sel}>— Not set —</option>
                 {filteredScreens.map(s => (
-                  <option key={s.id} value={s.id} className="bg-[#1a0f3a]">{s.name} ({s.code})</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Module type */}
-          <div>
-            <label className="text-xs uppercase tracking-widest text-white/40 mb-2 block">Module Type</label>
-            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-              <Monitor className="w-4 h-4 text-white/40 flex-none" />
-              <select
-                className="bg-transparent flex-1 outline-none text-white"
-                value={form.moduleType}
-                onChange={e => setForm(f => ({ ...f, moduleType: e.target.value }))}
-              >
-                {MODULE_TYPES.map(m => (
-                  <option key={m.value} value={m.value} className="bg-[#1a0f3a]">{m.label}</option>
+                  <option key={s.id} value={s.id} className={sel}>{s.name} ({s.code})</option>
                 ))}
               </select>
             </div>
@@ -174,11 +165,10 @@ export default function DisplayConfigPage() {
 
           {/* Current config summary */}
           {(config.screenId || config.locationId) && (
-            <div className="bg-violet-600/10 border border-violet-600/30 rounded-xl p-4 text-sm">
+            <div className="bg-violet-600/10 border border-violet-600/30 rounded-xl p-4 text-sm space-y-1">
               <p className="text-white/40 uppercase text-xs tracking-widest mb-2">Currently Active</p>
               {config.locationName && <p>📍 {config.locationName}</p>}
               {config.screenName   && <p>🖥 {config.screenName}</p>}
-              {config.moduleType   && <p>🧩 {config.moduleType}</p>}
             </div>
           )}
 
@@ -189,7 +179,7 @@ export default function DisplayConfigPage() {
               className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               {saved ? <Check className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-              {saved ? "Saved!" : "Save Config"}
+              {saved ? "Saved!" : "Save & Return"}
             </button>
             <button
               onClick={handleClear}
