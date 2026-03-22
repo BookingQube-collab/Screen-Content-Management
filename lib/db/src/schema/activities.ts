@@ -10,6 +10,7 @@ export const activitiesTable = pgTable("activities", {
   fullDescription: text("full_description"),
   ageLimit: integer("age_limit").notNull().default(18),
   termsAndConditions: text("terms_and_conditions"),
+  logoUrl: text("logo_url"),
   heroImageUrl: text("hero_image_url"),
   heroVideoUrl: text("hero_video_url"),
   cardImageUrl: text("card_image_url"),

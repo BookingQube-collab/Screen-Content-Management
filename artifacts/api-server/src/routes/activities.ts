@@ -75,6 +75,7 @@ router.post("/activities/create", requireAuth, async (req, res): Promise<void> =
     fullDescription: parsed.data.fullDescription ?? null,
     ageLimit: parsed.data.ageLimit ?? 18,
     termsAndConditions: parsed.data.termsAndConditions ?? null,
+    logoUrl: parsed.data.logoUrl ?? null,
     heroImageUrl: parsed.data.heroImageUrl ?? null,
     heroVideoUrl: parsed.data.heroVideoUrl ?? null,
     cardImageUrl: parsed.data.cardImageUrl ?? null,
@@ -131,6 +132,7 @@ router.patch("/activities/:id", requireAuth, async (req, res): Promise<void> => 
   if (body.fullDescription   !== undefined) updateData.fullDescription   = body.fullDescription;
   if (body.ageLimit          !== undefined) updateData.ageLimit          = body.ageLimit;
   if (body.termsAndConditions!== undefined) updateData.termsAndConditions= body.termsAndConditions;
+  if (body.logoUrl           !== undefined) updateData.logoUrl           = body.logoUrl;
   if (body.heroImageUrl      !== undefined) updateData.heroImageUrl      = body.heroImageUrl;
   if (body.heroVideoUrl      !== undefined) updateData.heroVideoUrl      = body.heroVideoUrl;
   if (body.cardImageUrl      !== undefined) updateData.cardImageUrl      = body.cardImageUrl;
