@@ -10,6 +10,10 @@ export interface AppSettings {
   slide_interval: number;
   display_mode: "image_first" | "video_first" | "mixed";
   brand_color: string;
+  display_title_part1: string;
+  display_title_part2: string;
+  admin_title_part1: string;
+  admin_title_part2: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -19,6 +23,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   slide_interval: 5,
   display_mode: "image_first",
   brand_color: "#E50914",
+  display_title_part1: "URBAN",
+  display_title_part2: "ARENA",
+  admin_title_part1: "Arena",
+  admin_title_part2: "OS",
 };
 
 export function useAppSettings() {
@@ -33,9 +41,8 @@ export function useAppSettings() {
     request: { headers: authHeaders }
   });
 
-  // Convert array of {key, value} to typed object
   const settings: AppSettings = { ...DEFAULT_SETTINGS };
-  
+
   if (rawSettings) {
     rawSettings.forEach((s) => {
       if (s.key === "auto_slide") settings.auto_slide = s.value === "true";

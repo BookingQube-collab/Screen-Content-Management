@@ -14,7 +14,7 @@ const DARK   = "#0c0820";
 interface ApiLocation { id: number; name: string; code: string; }
 interface ApiScreen   { id: number; name: string; code: string; locationId: number | null; }
 
-function FirstRunSetup({ onDone }: { onDone: () => void }) {
+function FirstRunSetup({ onDone, titlePart1, titlePart2 }: { onDone: () => void; titlePart1: string; titlePart2: string }) {
   const { saveConfig } = useScreenConfig();
   const [locations, setLocations] = useState<ApiLocation[]>([]);
   const [screens,   setScreens]   = useState<ApiScreen[]>([]);
@@ -64,7 +64,7 @@ function FirstRunSetup({ onDone }: { onDone: () => void }) {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "clamp(2rem,5vh,4rem)" }}>
           <div style={{ fontSize: "clamp(2rem,5vw,3.5rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "#fff", marginBottom: 8 }}>
-            URBAN<span style={{ color: "#7C3AED" }}>ARENA</span>
+            {titlePart1}<span style={{ color: "#7C3AED" }}>{titlePart2}</span>
           </div>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "clamp(0.85rem,1.5vw,1.1rem)" }}>
             {step === "location" ? "Select your venue to get started" : "Which screen is this device?"}
@@ -294,7 +294,7 @@ export default function DisplayPage() {
   }, [settings.auto_slide, settings.slide_interval, activities, idx]);
 
   // First-run setup overlay (before loading checks so it always shows)
-  if (showSetup) return <FirstRunSetup onDone={() => setShowSetup(false)} />;
+  if (showSetup) return <FirstRunSetup onDone={() => setShowSetup(false)} titlePart1={settings.display_title_part1 || "URBAN"} titlePart2={settings.display_title_part2 || "ARENA"} />;
 
   if (loadAct || loadSet) return (
     <div className="fixed inset-0 flex items-center justify-center" style={{ background: DARK }}>
