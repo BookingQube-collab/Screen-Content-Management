@@ -444,8 +444,8 @@ export default function DisplayPage() {
                       src={l.src!}
                       alt={l.alt}
                       style={{
-                        maxHeight: "clamp(24px,4vw,56px)",
-                        maxWidth:  "clamp(48px,7vw,100px)",
+                        maxHeight: "clamp(48px,7.5vw,108px)",
+                        maxWidth:  "clamp(90px,13vw,190px)",
                         objectFit: "contain",
                       }}
                     />
