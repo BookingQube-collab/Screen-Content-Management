@@ -17,6 +17,7 @@ export interface CachedActivity {
   fullDescription?: string | null;
   ageLimit: number;
   termsAndConditions?: string | null;
+  logoUrl?: string | null;
   heroImageUrl?: string | null;
   heroVideoUrl?: string | null;
   cardImageUrl?: string | null;
