@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, activitiesTable } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and, or, isNull, gte, lte } from "drizzle-orm";
 import {
   ListActivitiesResponse,
   ListDisplayActivitiesResponse,
@@ -19,12 +19,37 @@ import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-router.get("/activities/display", async (_req, res): Promise<void> => {
-  const activities = await db
+router.get("/activities/display", async (req, res): Promise<void> => {
+  const screenId   = req.query.screenId   ? parseInt(req.query.screenId as string)   : null;
+  const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : null;
+
+  const now = new Date();
+
+  let activities = await db
     .select()
     .from(activitiesTable)
     .where(eq(activitiesTable.isActive, true))
     .orderBy(asc(activitiesTable.sortOrder));
+
+  // Filter by validity window if dates are set
+  activities = activities.filter(a => {
+    if (a.validFrom && new Date(a.validFrom) > now) return false;
+    if (a.validTo   && new Date(a.validTo)   < now) return false;
+    return true;
+  });
+
+  // If a screen/location filter is requested, show only activities assigned
+  // to that screen/location OR activities with no assignment (show everywhere)
+  if (screenId !== null || locationId !== null) {
+    activities = activities.filter(a => {
+      const hasAssignment = a.screenId !== null || a.locationId !== null;
+      if (!hasAssignment) return true; // unassigned = show everywhere
+      if (screenId   !== null && a.screenId   === screenId)   return true;
+      if (locationId !== null && a.locationId === locationId) return true;
+      return false;
+    });
+  }
+
   res.json(ListDisplayActivitiesResponse.parse(activities));
 });
 
@@ -58,6 +83,12 @@ router.post("/activities/create", requireAuth, async (req, res): Promise<void> =
     isFeatured: parsed.data.isFeatured ?? false,
     sortOrder: parsed.data.sortOrder ?? 0,
     ctaText: parsed.data.ctaText ?? "Explore Now",
+    locationId: parsed.data.locationId ?? null,
+    screenId: parsed.data.screenId ?? null,
+    moduleType: parsed.data.moduleType ?? null,
+    isOfflineEnabled: parsed.data.isOfflineEnabled ?? false,
+    validFrom: parsed.data.validFrom ? new Date(parsed.data.validFrom) : null,
+    validTo:   parsed.data.validTo   ? new Date(parsed.data.validTo)   : null,
   }).returning();
 
   res.status(201).json(GetActivityResponse.parse(activity));
@@ -94,20 +125,26 @@ router.patch("/activities/:id", requireAuth, async (req, res): Promise<void> => 
 
   const updateData: Record<string, any> = {};
   const body = parsed.data;
-  if (body.name !== undefined) updateData.name = body.name;
-  if (body.slug !== undefined) updateData.slug = body.slug;
-  if (body.shortDescription !== undefined) updateData.shortDescription = body.shortDescription;
-  if (body.fullDescription !== undefined) updateData.fullDescription = body.fullDescription;
-  if (body.ageLimit !== undefined) updateData.ageLimit = body.ageLimit;
-  if (body.termsAndConditions !== undefined) updateData.termsAndConditions = body.termsAndConditions;
-  if (body.heroImageUrl !== undefined) updateData.heroImageUrl = body.heroImageUrl;
-  if (body.heroVideoUrl !== undefined) updateData.heroVideoUrl = body.heroVideoUrl;
-  if (body.cardImageUrl !== undefined) updateData.cardImageUrl = body.cardImageUrl;
-  if (body.thumbnailUrl !== undefined) updateData.thumbnailUrl = body.thumbnailUrl;
-  if (body.isActive !== undefined) updateData.isActive = body.isActive;
-  if (body.isFeatured !== undefined) updateData.isFeatured = body.isFeatured;
-  if (body.sortOrder !== undefined) updateData.sortOrder = body.sortOrder;
-  if (body.ctaText !== undefined) updateData.ctaText = body.ctaText;
+  if (body.name              !== undefined) updateData.name              = body.name;
+  if (body.slug              !== undefined) updateData.slug              = body.slug;
+  if (body.shortDescription  !== undefined) updateData.shortDescription  = body.shortDescription;
+  if (body.fullDescription   !== undefined) updateData.fullDescription   = body.fullDescription;
+  if (body.ageLimit          !== undefined) updateData.ageLimit          = body.ageLimit;
+  if (body.termsAndConditions!== undefined) updateData.termsAndConditions= body.termsAndConditions;
+  if (body.heroImageUrl      !== undefined) updateData.heroImageUrl      = body.heroImageUrl;
+  if (body.heroVideoUrl      !== undefined) updateData.heroVideoUrl      = body.heroVideoUrl;
+  if (body.cardImageUrl      !== undefined) updateData.cardImageUrl      = body.cardImageUrl;
+  if (body.thumbnailUrl      !== undefined) updateData.thumbnailUrl      = body.thumbnailUrl;
+  if (body.isActive          !== undefined) updateData.isActive          = body.isActive;
+  if (body.isFeatured        !== undefined) updateData.isFeatured        = body.isFeatured;
+  if (body.sortOrder         !== undefined) updateData.sortOrder         = body.sortOrder;
+  if (body.ctaText           !== undefined) updateData.ctaText           = body.ctaText;
+  if (body.locationId        !== undefined) updateData.locationId        = body.locationId;
+  if (body.screenId          !== undefined) updateData.screenId          = body.screenId;
+  if (body.moduleType        !== undefined) updateData.moduleType        = body.moduleType;
+  if (body.isOfflineEnabled  !== undefined) updateData.isOfflineEnabled  = body.isOfflineEnabled;
+  if (body.validFrom         !== undefined) updateData.validFrom         = body.validFrom ? new Date(body.validFrom) : null;
+  if (body.validTo           !== undefined) updateData.validTo           = body.validTo   ? new Date(body.validTo)   : null;
 
   const [activity] = await db
     .update(activitiesTable)

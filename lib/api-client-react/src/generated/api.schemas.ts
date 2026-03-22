@@ -40,6 +40,17 @@ export interface Activity {
   isFeatured: boolean;
   sortOrder: number;
   ctaText: string;
+  /** @nullable - screen assignment fields */
+  locationId?: number | null;
+  /** @nullable */
+  screenId?: number | null;
+  /** @nullable */
+  moduleType?: string | null;
+  isOfflineEnabled?: boolean;
+  /** @nullable */
+  validFrom?: string | null;
+  /** @nullable */
+  validTo?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,6 +77,12 @@ export interface CreateActivityBody {
   isFeatured?: boolean;
   sortOrder?: number;
   ctaText?: string;
+  locationId?: number | null;
+  screenId?: number | null;
+  moduleType?: string | null;
+  isOfflineEnabled?: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
 }
 
 export interface UpdateActivityBody {
@@ -90,6 +107,12 @@ export interface UpdateActivityBody {
   isFeatured?: boolean;
   sortOrder?: number;
   ctaText?: string;
+  locationId?: number | null;
+  screenId?: number | null;
+  moduleType?: string | null;
+  isOfflineEnabled?: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
 }
 
 export interface ReorderActivityBody {

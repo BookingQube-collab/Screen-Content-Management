@@ -114,6 +114,12 @@ export const UpdateActivityBody = zod.object({
   isFeatured: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
+  locationId: zod.number().int().nullish(),
+  screenId: zod.number().int().nullish(),
+  moduleType: zod.string().nullish(),
+  isOfflineEnabled: zod.boolean().optional(),
+  validFrom: zod.string().nullish(),
+  validTo: zod.string().nullish(),
 });
 
 export const UpdateActivityResponse = zod.object({
@@ -161,6 +167,12 @@ export const CreateActivityBody = zod.object({
   isFeatured: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
+  locationId: zod.number().int().nullish(),
+  screenId: zod.number().int().nullish(),
+  moduleType: zod.string().nullish(),
+  isOfflineEnabled: zod.boolean().optional(),
+  validFrom: zod.string().nullish(),
+  validTo: zod.string().nullish(),
 });
 
 /**
