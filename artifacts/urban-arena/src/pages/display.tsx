@@ -211,14 +211,19 @@ export default function DisplayPage() {
           onWheel={onWheel}
         />
 
-        {/* LIVE badge — shown in top-left when video is playing */}
-        {act.heroVideoUrl && (
-          <div
-            className="absolute top-3 left-4 flex items-center gap-1.5 font-black z-10"
-            style={{ background: PINK, borderRadius: 4, padding: "3px 10px", fontSize: "clamp(8px,1vw,13px)", color: "#fff", letterSpacing: "0.12em" }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "lp 1.2s infinite" }} />
-            LIVE
+        {/* Settings logo — top-left, shown on image & video when uploaded */}
+        {settings.logo_url && (
+          <div className="absolute z-10" style={{ top: "clamp(10px,1.5vw,22px)", left: "clamp(10px,1.5vw,22px)" }}>
+            <img
+              src={settings.logo_url}
+              alt="Logo"
+              style={{
+                maxHeight: "clamp(30px,4.5vw,64px)",
+                maxWidth:  "clamp(70px,10vw,140px)",
+                objectFit: "contain",
+                filter:    "drop-shadow(0 2px 8px rgba(0,0,0,0.7))",
+              }}
+            />
           </div>
         )}
 
@@ -303,19 +308,6 @@ export default function DisplayPage() {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.4 }}
               >
-                {act.logoUrl && (
-                  <img
-                    src={act.logoUrl}
-                    alt={act.name + " logo"}
-                    style={{
-                      maxHeight: "clamp(40px,7vw,100px)",
-                      maxWidth: "clamp(80px,18vw,220px)",
-                      objectFit: "contain",
-                      marginBottom: "clamp(10px,2%,22px)",
-                      filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.6))",
-                    }}
-                  />
-                )}
                 <h1
                   className="font-black text-white leading-none"
                   style={{ fontSize: "clamp(28px,6vw,78px)", marginBottom: "clamp(10px,2%,22px)", textShadow: "0 4px 24px rgba(0,0,0,0.7)" }}
@@ -403,11 +395,11 @@ export default function DisplayPage() {
               </p>
             )}
 
-            {/* Logo — right-aligned within the left 70% section */}
-            {settings.logo_url && (
+            {/* Activity logo — right-aligned in the footer stats section */}
+            {act.logoUrl && (
               <img
-                src={settings.logo_url}
-                alt="Logo"
+                src={act.logoUrl}
+                alt={act.name + " logo"}
                 style={{
                   maxHeight: "clamp(28px,4.5vw,64px)",
                   maxWidth: "clamp(60px,8vw,120px)",
