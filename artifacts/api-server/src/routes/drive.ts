@@ -24,7 +24,7 @@ import {
   getActivityDriveStatus,
 } from "../lib/driveService";
 import { db } from "@workspace/db";
-import { driveAssetsTable } from "@workspace/db";
+import { driveAssetsTable, driveFoldersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
@@ -65,6 +65,50 @@ router.get("/admin/drive/:activityId/assets", requireAuth, async (req, res): Pro
     .where(eq(driveAssetsTable.activityId, activityId))
     .orderBy(driveAssetsTable.fileType, driveAssetsTable.fileName);
   res.json(assets);
+});
+
+/**
+ * GET /api/admin/drive/summary
+ * Returns an aggregate overview of all Drive folders + assets for the dashboard.
+ */
+router.get("/admin/drive/summary", requireAuth, async (req, res): Promise<void> => {
+  const [folders, assets] = await Promise.all([
+    db.select().from(driveFoldersTable),
+    db.select().from(driveAssetsTable),
+  ]);
+
+  const FILE_TYPES = ["video", "poster", "thumbnail", "logo"] as const;
+
+  const perActivity = folders.map(folder => {
+    const actAssets = assets.filter(a => a.activityId === folder.activityId);
+    const fileCounts: Record<string, number> = {};
+    for (const t of FILE_TYPES) {
+      fileCounts[t] = actAssets.filter(a => a.fileType === t).length;
+    }
+    const totalFiles = Object.values(fileCounts).reduce((s, n) => s + n, 0);
+    return {
+      activityId: folder.activityId,
+      activityName: folder.activityName,
+      activityFolderId: folder.activityFolderId,
+      hasFolders: !!folder.activityFolderId,
+      lastSyncAt: folder.lastSyncAt,
+      fileCounts,
+      totalFiles,
+    };
+  }).sort((a, b) => b.totalFiles - a.totalFiles);
+
+  const totals: Record<string, number> = { total: assets.length };
+  for (const t of FILE_TYPES) {
+    totals[t] = assets.filter(a => a.fileType === t).length;
+  }
+
+  res.json({
+    folderCount: folders.filter(f => !!f.activityFolderId).length,
+    syncedCount: perActivity.filter(a => a.lastSyncAt !== null).length,
+    totalAssets: assets.length,
+    totals,
+    perActivity,
+  });
 });
 
 export default router;

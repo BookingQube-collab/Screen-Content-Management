@@ -36,9 +36,28 @@ export default function AdminActivities() {
     for (let i = 0; i < sorted.length; i++) {
       const act = sorted[i] as any;
       try {
-        const res  = await fetch(`/api/admin/drive/${act.id}/sync`, { method: "POST", headers: authHeaders });
-        const data = await res.json();
-        results.push({ id: act.id, name: act.name, ok: !!data.success, msg: data.message || "" });
+        // 1. Check folder status; auto-setup if not yet configured
+        const statusRes = await fetch(`/api/admin/drive/${act.id}/status`, { headers: authHeaders });
+        const status = await statusRes.json();
+
+        if (!status?.folderRecord?.activityFolderId) {
+          const setupRes = await fetch(`/api/admin/drive/${act.id}/setup`, {
+            method: "POST",
+            headers: { ...authHeaders, "Content-Type": "application/json" },
+            body: JSON.stringify({ activityName: act.name }),
+          });
+          const setupData = await setupRes.json();
+          if (!setupData.success) {
+            results.push({ id: act.id, name: act.name, ok: false, msg: `Setup failed: ${setupData.message}` });
+            setSyncProgress({ done: i + 1, total: sorted.length });
+            continue;
+          }
+        }
+
+        // 2. Sync files from Drive
+        const syncRes  = await fetch(`/api/admin/drive/${act.id}/sync`, { method: "POST", headers: authHeaders });
+        const syncData = await syncRes.json();
+        results.push({ id: act.id, name: act.name, ok: !!syncData.success, msg: syncData.message || "" });
       } catch {
         results.push({ id: act.id, name: act.name, ok: false, msg: "Request failed" });
       }
