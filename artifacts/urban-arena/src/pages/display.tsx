@@ -284,8 +284,8 @@ export default function DisplayPage() {
           onWheel={onWheel}
         />
 
-        {/* Location logo — top-left corner, shown when the activity's location has a logo */}
-        {(() => {
+        {/* Location logo — top-left corner, shown when the activity's location has a logo and hideLocationLogo is off */}
+        {!act.hideLocationLogo && (() => {
           const locLogo = act.locationId
             ? (locations.find(l => l.id === act.locationId)?.logoUrl ?? null)
             : null;

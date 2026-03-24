@@ -19,6 +19,7 @@ export const activitiesTable = pgTable("activities", {
   isActive: boolean("is_active").notNull().default(true),
   isFeatured: boolean("is_featured").notNull().default(false),
   hideInfo: boolean("hide_info").notNull().default(false),
+  hideLocationLogo: boolean("hide_location_logo").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   ctaText: text("cta_text").notNull().default("Explore Now"),
   // Screen assignment fields (optional — null means show everywhere)
