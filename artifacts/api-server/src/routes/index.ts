@@ -7,6 +7,7 @@ import uploadsRouter   from "./uploads";
 import syncRouter      from "./sync";
 import locationsRouter from "./locations";
 import screensRouter   from "./screens";
+import driveRouter     from "./drive";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(uploadsRouter);
 router.use(syncRouter);
 router.use(locationsRouter);
 router.use(screensRouter);
+router.use(driveRouter);
 
 export default router;
