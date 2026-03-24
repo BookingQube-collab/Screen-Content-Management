@@ -199,13 +199,15 @@ export default function DisplayPage() {
   const img     = currentGalleryImg    || act.heroImageUrl     || act.cardImageUrl     || `https://picsum.photos/seed/${act.id}/1200/900`;
   const nextImg = nextAct.heroImageUrl || nextAct.cardImageUrl || `https://picsum.photos/seed/${nextAct.id}/400/300`;
 
+  const galleryMode = settings.gallery_mode;
+
   return (
     <div
       className="fixed inset-0 overflow-hidden select-none text-white"
       style={{
         fontFamily:          "system-ui, sans-serif",
         display:             "grid",
-        gridTemplateRows:    "80% 20%",
+        gridTemplateRows:    galleryMode ? "100%" : "80% 20%",
         width:               "100dvw",
         height:              "100dvh",
         overscrollBehavior:  "none",
@@ -325,8 +327,8 @@ export default function DisplayPage() {
           }
         </button>
 
-        {/* ── Text overlay, watermark & gradients — hidden when video is playing ── */}
-        {!act.heroVideoUrl && (
+        {/* ── Text overlay, watermark & gradients — hidden when video is playing or in gallery mode ── */}
+        {!act.heroVideoUrl && !galleryMode && (
           <>
             {/* Right-side text backdrop */}
             <div
@@ -402,8 +404,9 @@ export default function DisplayPage() {
       </div>
 
       {/* ══════════════════════════════════════════════
-          BOTTOM 20% — stats bar + next item
+          BOTTOM 20% — stats bar + next item (hidden in gallery mode)
       ══════════════════════════════════════════════ */}
+      {!galleryMode && (
       <div
         className="flex"
         style={{ background: "#000000", borderTop: "1px solid rgba(168,85,247,0.25)" }}
@@ -533,6 +536,7 @@ export default function DisplayPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Offline mode indicator */}
       {isOffline && (

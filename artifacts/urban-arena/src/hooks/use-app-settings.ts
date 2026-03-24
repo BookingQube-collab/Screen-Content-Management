@@ -15,6 +15,7 @@ export interface AppSettings {
   admin_title_part1: string;
   admin_title_part2: string;
   logo_url: string;
+  gallery_mode: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   admin_title_part1: "Arena",
   admin_title_part2: "OS",
   logo_url: "",
+  gallery_mode: false,
 };
 
 export function useAppSettings() {
@@ -49,6 +51,7 @@ export function useAppSettings() {
   if (rawSettings) {
     rawSettings.forEach((s) => {
       if (s.key === "auto_slide") settings.auto_slide = s.value === "true";
+      else if (s.key === "gallery_mode") settings.gallery_mode = s.value === "true";
       else if (s.key === "slide_interval") settings.slide_interval = parseInt(s.value, 10) || 5;
       else if (s.key in settings) {
         // @ts-ignore - dynamic assignment

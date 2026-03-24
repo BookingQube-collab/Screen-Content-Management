@@ -253,6 +253,17 @@ export default function AdminSettings() {
 
           <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
             <div>
+              <Label className="text-base">Gallery Mode</Label>
+              <p className="text-xs text-muted-foreground mt-1">Hide activity info &amp; footer — show only full-screen media on the kiosk</p>
+            </div>
+            <Switch
+              checked={localSettings.gallery_mode}
+              onCheckedChange={c => setLocalSettings({ ...localSettings, gallery_mode: c })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
+            <div>
               <Label className="text-base">Auto-Slide</Label>
               <p className="text-xs text-muted-foreground mt-1">Automatically advance slides when idle</p>
             </div>
