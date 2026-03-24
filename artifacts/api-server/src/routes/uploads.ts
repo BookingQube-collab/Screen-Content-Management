@@ -17,6 +17,7 @@ import multer from "multer";
 import path from "path";
 import { requireAuth } from "./auth";
 import { objectStorageClient } from "../lib/objectStorage";
+import { uploadToGCS } from "../lib/gcsUpload";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -30,28 +31,6 @@ if (!BUCKET_ID) {
 function getBucket() {
   if (!BUCKET_ID) throw new Error("Object Storage not configured");
   return objectStorageClient.bucket(BUCKET_ID);
-}
-
-/** Upload a buffer to GCS and return the storage path (used as filename key). */
-async function uploadToGCS(
-  buffer: Buffer,
-  originalName: string,
-  mimeType: string,
-): Promise<string> {
-  const ext = path.extname(originalName) || "";
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-  const storagePath = `uploads/${filename}`;
-
-  const bucket = getBucket();
-  const file = bucket.file(storagePath);
-
-  await file.save(buffer, {
-    metadata: { contentType: mimeType },
-    resumable: false,
-  });
-
-  logger.info({ storagePath, size: buffer.length }, "File saved to Object Storage");
-  return filename; // return just the filename portion for URL construction
 }
 
 // Use memory storage — buffer is held in RAM briefly then pushed to GCS.

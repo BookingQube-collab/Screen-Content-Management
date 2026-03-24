@@ -25,9 +25,10 @@
 
 import { google, drive_v3 } from "googleapis";
 import { db } from "@workspace/db";
-import { driveAssetsTable, driveFoldersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { driveAssetsTable, driveFoldersTable, activitiesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { settingsTable } from "@workspace/db";
+import { uploadToGCS } from "./gcsUpload";
 import { logger } from "./logger";
 
 const ROOT_FOLDER_NAME = "Urban Arena";
@@ -188,15 +189,51 @@ export async function createActivityDriveFolders(
 }
 
 /**
+ * Maps a Drive asset type to the corresponding activity URL column.
+ *   video     → heroVideoUrl
+ *   poster    → heroImageUrl
+ *   thumbnail → cardImageUrl
+ *   logo      → logoUrl
+ */
+const ASSET_TYPE_TO_ACTIVITY_FIELD: Record<AssetType, keyof typeof activitiesTable.$inferInsert> = {
+  video:     "heroVideoUrl",
+  poster:    "heroImageUrl",
+  thumbnail: "cardImageUrl",
+  logo:      "logoUrl",
+};
+
+/**
+ * Download a Drive file as a Buffer using the service-account Drive client.
+ */
+async function downloadDriveFile(
+  drive: drive_v3.Drive,
+  fileId: string,
+): Promise<Buffer> {
+  const res = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "arraybuffer" },
+  );
+  return Buffer.from(res.data as ArrayBuffer);
+}
+
+/**
  * syncActivityDriveAssets — fetches files from all 4 Drive subfolders for an
- * activity and upserts them into drive_assets. Uses drive_file_id as unique key
- * to prevent duplicates.
+ * activity, downloads each file, uploads it to GCS Object Storage, and
+ * upserts the GCS URL into drive_assets.
+ *
+ * After all files are processed, the activity record is updated so that the
+ * first file of each type becomes the active media URL:
+ *   video → heroVideoUrl  |  poster → heroImageUrl
+ *   thumbnail → cardImageUrl  |  logo → logoUrl
  */
 export async function syncActivityDriveAssets(
   activityId: number,
 ): Promise<{ success: boolean; message: string; synced: number; errors: string[] }> {
   const errors: string[] = [];
   let synced = 0;
+
+  // Track the first GCS URL per type so we can update the activity afterwards
+  const firstUrlByType: Partial<Record<AssetType, string>> = {};
 
   try {
     const [folderRecord] = await db
@@ -229,7 +266,7 @@ export async function syncActivityDriveAssets(
       do {
         const res = await drive.files.list({
           q: `'${folderId}' in parents and trashed=false`,
-          fields: "nextPageToken, files(id, name, mimeType, webContentLink, webViewLink)",
+          fields: "nextPageToken, files(id, name, mimeType, size)",
           spaces: "drive",
           pageToken,
         });
@@ -240,10 +277,22 @@ export async function syncActivityDriveAssets(
         for (const f of files) {
           if (!f.id || !f.name) continue;
 
-          // Construct a direct download URL (requires service account share)
-          const fileUrl = `https://drive.google.com/uc?export=download&id=${f.id}`;
+          // Skip Google Docs/Sheets/Slides — they can't be downloaded as binary
+          const mime = f.mimeType ?? "";
+          if (mime.startsWith("application/vnd.google-apps")) {
+            logger.info({ fileId: f.id, name: f.name }, "Skipping Google Workspace file");
+            continue;
+          }
 
           try {
+            // 1. Download the file content from Drive
+            const buffer = await downloadDriveFile(drive, f.id);
+
+            // 2. Upload to GCS Object Storage
+            const filename = await uploadToGCS(buffer, f.name, mime || "application/octet-stream");
+            const gcsUrl = `/api/uploads/files/${filename}`;
+
+            // 3. Upsert drive_assets record with the GCS URL
             await db
               .insert(driveAssetsTable)
               .values({
@@ -252,8 +301,8 @@ export async function syncActivityDriveAssets(
                 fileName: f.name,
                 driveFileId: f.id,
                 driveFolderId: folderId,
-                fileUrl,
-                mimeType: f.mimeType ?? null,
+                fileUrl: gcsUrl,
+                mimeType: mime || null,
                 syncStatus: "synced",
                 updatedAt: new Date(),
               })
@@ -262,18 +311,44 @@ export async function syncActivityDriveAssets(
                 set: {
                   fileName: f.name,
                   driveFolderId: folderId,
-                  fileUrl,
-                  mimeType: f.mimeType ?? null,
+                  fileUrl: gcsUrl,
+                  mimeType: mime || null,
                   syncStatus: "synced",
                   updatedAt: new Date(),
                 },
               });
+
             synced++;
-          } catch (dbErr: any) {
-            errors.push(`DB upsert failed for file ${f.name}: ${dbErr.message}`);
+
+            // Remember the first GCS URL per type to apply to the activity
+            if (!firstUrlByType[fileType]) {
+              firstUrlByType[fileType] = gcsUrl;
+            }
+
+            logger.info({ activityId, fileType, filename }, "Drive file synced to GCS");
+          } catch (fileErr: any) {
+            errors.push(`Failed to sync "${f.name}" (${fileType}): ${fileErr.message}`);
+            logger.error({ err: fileErr.message, fileId: f.id }, "Drive file sync error");
           }
         }
       } while (pageToken);
+    }
+
+    // ── Apply first file of each type to the activity record ────────────────
+    const activityUpdate: Record<string, string> = {};
+    for (const [type, url] of Object.entries(firstUrlByType) as [AssetType, string][]) {
+      const field = ASSET_TYPE_TO_ACTIVITY_FIELD[type];
+      if (field && url) {
+        activityUpdate[field as string] = url;
+      }
+    }
+
+    if (Object.keys(activityUpdate).length > 0) {
+      await db
+        .update(activitiesTable)
+        .set(activityUpdate as any)
+        .where(eq(activitiesTable.id, activityId));
+      logger.info({ activityId, fields: Object.keys(activityUpdate) }, "Activity media fields updated from Drive sync");
     }
 
     // Update last sync time
