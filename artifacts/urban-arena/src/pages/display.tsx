@@ -86,11 +86,29 @@ export default function DisplayPage() {
   }, [rawActivities]);
 
   const [idx, setIdx] = useState(0);
+  const [galleryIdx, setGalleryIdx] = useState(0);
 
   const go = (next: number) => {
     if (!activities) return;
     setIdx(((next % activities.length) + activities.length) % activities.length);
   };
+
+  // Reset gallery slide index when the activity changes
+  useEffect(() => {
+    setGalleryIdx(0);
+  }, [idx]);
+
+  // Cycle through gallery images every 4 s (only when gallery has multiple images and no video)
+  useEffect(() => {
+    if (!activities?.length) return;
+    const act = activities[idx];
+    if (act?.heroVideoUrl) return;
+    let gallery: string[] = [];
+    try { gallery = JSON.parse((act as any).heroGalleryUrls || "[]"); } catch {}
+    if (gallery.length <= 1) return;
+    const id = setInterval(() => setGalleryIdx(p => p + 1), 4000);
+    return () => clearInterval(id);
+  }, [idx, activities]);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -161,7 +179,11 @@ export default function DisplayPage() {
   const count   = activities.length;
   const act     = activities[idx];
   const nextAct = activities[(idx + 1) % count];
-  const img     = act.heroImageUrl     || act.cardImageUrl     || `https://picsum.photos/seed/${act.id}/1200/900`;
+
+  // Parse background gallery for current activity
+  const gallery = (() => { try { return JSON.parse((act as any).heroGalleryUrls || "[]") as string[]; } catch { return []; } })();
+  const currentGalleryImg = gallery.length > 0 ? gallery[galleryIdx % gallery.length] : null;
+  const img     = currentGalleryImg    || act.heroImageUrl     || act.cardImageUrl     || `https://picsum.photos/seed/${act.id}/1200/900`;
   const nextImg = nextAct.heroImageUrl || nextAct.cardImageUrl || `https://picsum.photos/seed/${nextAct.id}/400/300`;
 
   return (
@@ -216,7 +238,7 @@ export default function DisplayPage() {
           /* Hero image — crossfades on activity change */
           <AnimatePresence mode="wait">
             <motion.img
-              key={act.id + "-img"}
+              key={act.id + "-img-" + galleryIdx}
               src={img}
               alt={act.name}
               className="absolute inset-0 w-full h-full object-cover"
