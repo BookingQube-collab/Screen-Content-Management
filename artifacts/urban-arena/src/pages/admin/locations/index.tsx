@@ -83,24 +83,31 @@ export default function AdminLocations() {
 
   return (
     <AdminLayout>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold">Locations</h1>
-          <p className="text-muted-foreground mt-1">Manage physical venues where screens are installed.</p>
+      {/* ── Header ── */}
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold truncate">Locations</h1>
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">Manage physical venues where screens are installed.</p>
         </div>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> Add Location</Button>
+        <Button onClick={openNew} size="sm" className="shrink-0">
+          <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Add Location</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
       </div>
 
+      {/* ── Content ── */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : rows.length === 0 ? (
+        <div className="bg-card border border-border rounded-2xl py-20 text-center text-muted-foreground">
+          <MapPin className="w-10 h-10 mx-auto mb-4 opacity-30" />
+          <p>No locations yet. Add your first venue.</p>
+        </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-          {rows.length === 0 ? (
-            <div className="py-20 text-center text-muted-foreground">
-              <MapPin className="w-10 h-10 mx-auto mb-4 opacity-30" />
-              <p>No locations yet. Add your first venue.</p>
-            </div>
-          ) : (
+        <>
+          {/* Desktop table — hidden on small screens */}
+          <div className="hidden md:block bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
             <table className="w-full">
               <thead className="bg-secondary/50 border-b border-border">
                 <tr>
@@ -139,12 +146,52 @@ export default function AdminLocations() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+
+          {/* Mobile card list — shown only on small screens */}
+          <div className="md:hidden space-y-3">
+            {rows.map(l => (
+              <div key={l.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                {/* Logo or icon */}
+                <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                  {l.logoUrl
+                    ? <img src={l.logoUrl} alt="logo" className="w-full h-full object-contain p-1" />
+                    : <MapPin className="w-5 h-5 text-primary" />
+                  }
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm truncate">{l.name}</span>
+                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${l.isActive ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
+                      {l.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">{l.code}</p>
+                  {l.address && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{l.address}</p>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="shrink-0 flex gap-1">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(l)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => remove(l.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
+      {/* ── Dialog ── */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Location" : "New Location"}</DialogTitle>
           </DialogHeader>
