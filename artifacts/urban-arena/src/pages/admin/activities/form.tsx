@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/admin/MediaUpload";
+import { GalleryUpload } from "@/components/admin/GalleryUpload";
 import { ArrowLeft, Save, Loader2, HardDrive, RefreshCw, FolderOpen } from "lucide-react";
 
 interface ApiLocation { id: number; name: string; }
@@ -48,6 +49,7 @@ export default function AdminActivityForm() {
     logoUrl: null as string | null,
     heroImageUrl: null as string | null,
     heroVideoUrl: null as string | null,
+    heroGalleryUrls: [] as string[],
     cardImageUrl: null as string | null,
     sortOrder: 0,
     // Screen assignment (optional)
@@ -79,6 +81,7 @@ export default function AdminActivityForm() {
         logoUrl: existingData.logoUrl || null,
         heroImageUrl: existingData.heroImageUrl || null,
         heroVideoUrl: existingData.heroVideoUrl || null,
+        heroGalleryUrls: (() => { try { return JSON.parse(existingData.heroGalleryUrls || "[]") as string[]; } catch { return []; } })(),
         cardImageUrl: existingData.cardImageUrl || null,
         sortOrder: existingData.sortOrder,
         locationId: existingData.locationId ?? null,
@@ -114,10 +117,16 @@ export default function AdminActivityForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const gallery = formData.heroGalleryUrls;
+      const submitData = {
+        ...formData,
+        heroGalleryUrls: gallery.length > 0 ? JSON.stringify(gallery) : null,
+        heroImageUrl: gallery[0] || formData.heroImageUrl,
+      };
       if (isEdit) {
-        await updateAct({ id, data: formData });
+        await updateAct({ id, data: submitData });
       } else {
-        await createAct({ data: formData });
+        await createAct({ data: submitData });
       }
       queryClient.invalidateQueries({ queryKey: getListActivitiesQueryKey() });
       setLocation("/admin/activities");
@@ -268,12 +277,11 @@ export default function AdminActivityForm() {
                  value={formData.heroVideoUrl}
                  onChange={(url) => setFormData({...formData, heroVideoUrl: url})}
                />
-               <MediaUpload 
-                 label="Hero Image (Background)" 
-                 type="image"
-                 description="1080x1920 (9:16). Used as fallback if no video."
-                 value={formData.heroImageUrl}
-                 onChange={(url) => setFormData({...formData, heroImageUrl: url})}
+               <GalleryUpload
+                 label="Background Gallery"
+                 description="1080x1920 (9:16) images — multiple images cycle as a slideshow fallback when no video."
+                 value={formData.heroGalleryUrls}
+                 onChange={(urls) => setFormData(f => ({ ...f, heroGalleryUrls: urls }))}
                />
              </div>
              <div className="pt-6 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-8">

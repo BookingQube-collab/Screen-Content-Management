@@ -234,6 +234,8 @@ export async function syncActivityDriveAssets(
 
   // Track the first GCS URL per type so we can update the activity afterwards
   const firstUrlByType: Partial<Record<AssetType, string>> = {};
+  // Collect ALL poster URLs for background gallery
+  const allPosterUrls: string[] = [];
 
   try {
     const [folderRecord] = await db
@@ -324,6 +326,10 @@ export async function syncActivityDriveAssets(
             if (!firstUrlByType[fileType]) {
               firstUrlByType[fileType] = gcsUrl;
             }
+            // Collect ALL poster URLs for the background gallery
+            if (fileType === "poster") {
+              allPosterUrls.push(gcsUrl);
+            }
 
             logger.info({ activityId, fileType, filename }, "Drive file synced to GCS");
           } catch (fileErr: any) {
@@ -341,6 +347,11 @@ export async function syncActivityDriveAssets(
       if (field && url) {
         activityUpdate[field as string] = url;
       }
+    }
+
+    // Always update heroGalleryUrls if any poster files were synced
+    if (allPosterUrls.length > 0) {
+      activityUpdate.heroGalleryUrls = JSON.stringify(allPosterUrls);
     }
 
     if (Object.keys(activityUpdate).length > 0) {

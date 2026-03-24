@@ -15,6 +15,7 @@ export const activitiesTable = pgTable("activities", {
   heroVideoUrl: text("hero_video_url"),
   cardImageUrl: text("card_image_url"),
   thumbnailUrl: text("thumbnail_url"),
+  heroGalleryUrls: text("hero_gallery_urls"),
   isActive: boolean("is_active").notNull().default(true),
   isFeatured: boolean("is_featured").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
