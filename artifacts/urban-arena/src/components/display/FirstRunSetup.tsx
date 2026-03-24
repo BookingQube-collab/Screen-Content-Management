@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Tv, ChevronRight, ArrowLeft } from "lucide-react";
+import { MapPin, Tv, CheckCircle2, ArrowLeft } from "lucide-react";
 import { useScreenConfig } from "@/hooks/use-screen-config";
 
 interface ApiLocation { id: number; name: string; code: string; }
@@ -48,18 +48,21 @@ export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2
     onDone();
   };
 
+  const PURPLE = "#7C3AED";
+  const PINK   = "#EC4899";
+
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center"
-      style={{ background: "#0c0820", zIndex: 100, fontFamily: "system-ui, sans-serif" }}
+      style={{ background: "#0c0820", zIndex: 100, fontFamily: "system-ui, sans-serif", overflowY: "auto" }}
     >
       {/* Gradient orbs */}
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
-        <div style={{ position: "absolute", top: "-20%", left: "-10%", width: "60vw", height: "60vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", bottom: "-20%", right: "-10%", width: "50vw", height: "50vw", borderRadius: "50%", background: "radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "-20%", left: "-10%", width: "60vw", height: "60vw", borderRadius: "50%", background: `radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)` }} />
+        <div style={{ position: "absolute", bottom: "-20%", right: "-10%", width: "50vw", height: "50vw", borderRadius: "50%", background: `radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 70%)` }} />
       </div>
 
-      {/* Optional back button (for config page context) */}
+      {/* Back button */}
       {onBack && (
         <button
           onClick={onBack}
@@ -74,65 +77,82 @@ export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2
         </button>
       )}
 
-      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480, padding: "0 2rem" }}>
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "clamp(2rem,5vh,4rem)" }}>
-          <div style={{ fontSize: "clamp(2rem,5vw,3.5rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "#fff", marginBottom: 8 }}>
-            {titlePart1}<span style={{ color: "#7C3AED" }}>{titlePart2}</span>
+      {/* Main panel — wide enough for 4-column grid */}
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 960, padding: "2rem clamp(1rem, 4vw, 2.5rem)" }}>
+
+        {/* Logo + subtitle */}
+        <div style={{ textAlign: "center", marginBottom: "clamp(1.25rem,3vh,2.5rem)" }}>
+          <div style={{ fontSize: "clamp(1.8rem,4vw,3rem)", fontWeight: 900, letterSpacing: "-0.02em", color: "#fff", marginBottom: 6 }}>
+            {titlePart1}<span style={{ color: PURPLE }}>{titlePart2}</span>
           </div>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "clamp(0.85rem,1.5vw,1.1rem)" }}>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "clamp(0.85rem,1.4vw,1rem)" }}>
             {step === "location" ? "Select your venue to get started" : "Which screen is this device?"}
           </p>
         </div>
 
-        {/* Step indicator */}
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: "2rem" }}>
-          {(["location", "screen"] as const).map(s => (
-            <div key={s} style={{ width: 32, height: 4, borderRadius: 2, background: step === s || s === "location" ? "#7C3AED" : "rgba(255,255,255,0.15)", opacity: step === "screen" && s === "location" ? 0.5 : 1 }} />
+        {/* Step pills */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: "clamp(1rem,2.5vh,2rem)" }}>
+          {(["location", "screen"] as const).map((s, i) => (
+            <div key={s} style={{
+              width: 36, height: 4, borderRadius: 2,
+              background: (step === "screen" && s === "location") || step === s ? PURPLE : "rgba(255,255,255,0.15)",
+              opacity: step === "screen" && s === "location" ? 0.5 : 1,
+            }} />
           ))}
         </div>
 
-        {step === "location" ? (
+        {/* ── STEP 1: Location ── */}
+        {step === "location" && (
           <>
-            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "0.5rem" }}>
+            <div style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 16,
+              padding: "0.75rem",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: 8,
+            }}>
               {locations.length === 0 ? (
-                <div style={{ padding: "2rem", textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+                <div style={{ gridColumn: "1 / -1", padding: "2rem", textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
                   No locations configured yet.<br />
                   <span style={{ fontSize: "0.8rem" }}>Add locations in the admin panel.</span>
                 </div>
-              ) : locations.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => setLocationId(l.id)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 16,
-                    width: "100%", padding: "1.1rem 1.25rem", borderRadius: 12,
-                    background: locationId === l.id ? "rgba(124,58,237,0.25)" : "transparent",
-                    border: locationId === l.id ? "1px solid rgba(124,58,237,0.6)" : "1px solid transparent",
-                    color: "#fff", cursor: "pointer", textAlign: "left", marginBottom: 4,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(236,72,153,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <MapPin size={20} color="#EC4899" />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: "clamp(1rem,1.8vw,1.15rem)" }}>{l.name}</div>
-                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.8rem", marginTop: 2 }}>{l.code}</div>
-                  </div>
-                  {locationId === l.id && <ChevronRight size={18} color="#7C3AED" style={{ marginLeft: "auto" }} />}
-                </button>
-              ))}
+              ) : locations.map(l => {
+                const selected = locationId === l.id;
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => setLocationId(l.id)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 14,
+                      padding: "1rem 1.1rem", borderRadius: 12, textAlign: "left",
+                      background: selected ? "rgba(124,58,237,0.25)" : "rgba(255,255,255,0.03)",
+                      border: selected ? `1px solid rgba(124,58,237,0.6)` : "1px solid rgba(255,255,255,0.07)",
+                      color: "#fff", cursor: "pointer", transition: "all 0.15s", width: "100%",
+                    }}
+                  >
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: `rgba(236,72,153,0.15)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <MapPin size={18} color={PINK} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: "clamp(0.9rem,1.5vw,1.05rem)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name}</div>
+                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.78rem", marginTop: 2 }}>{l.code}</div>
+                    </div>
+                    {selected && <CheckCircle2 size={16} color={PURPLE} style={{ flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
             </div>
 
             <button
               onClick={() => { if (locationId) setStep("screen"); }}
               disabled={!locationId}
               style={{
-                marginTop: "1.5rem", width: "100%", padding: "1rem",
-                background: locationId ? "#7C3AED" : "rgba(124,58,237,0.2)",
+                marginTop: "1.25rem", width: "100%", padding: "0.95rem",
+                background: locationId ? PURPLE : "rgba(124,58,237,0.2)",
                 color: locationId ? "#fff" : "rgba(255,255,255,0.3)",
-                borderRadius: 14, fontWeight: 700, fontSize: "1.05rem",
+                borderRadius: 14, fontWeight: 700, fontSize: "1rem",
                 border: "none", cursor: locationId ? "pointer" : "not-allowed",
                 transition: "all 0.2s",
               }}
@@ -140,44 +160,62 @@ export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2
               Next: Select Screen →
             </button>
           </>
-        ) : (
+        )}
+
+        {/* ── STEP 2: Screen ── */}
+        {step === "screen" && (
           <>
-            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "0.5rem" }}>
+            <div style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 16,
+              padding: "0.75rem",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: 8,
+              maxHeight: "calc(100vh - 340px)",
+              overflowY: "auto",
+            }}>
               {filteredScreens.length === 0 ? (
-                <div style={{ padding: "2rem", textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+                <div style={{ gridColumn: "1 / -1", padding: "2rem", textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
                   No screens configured for this location.<br />
                   <span style={{ fontSize: "0.8rem" }}>Add screens in the admin panel.</span>
                 </div>
-              ) : filteredScreens.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setScreenId(s.id)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 16,
-                    width: "100%", padding: "1.1rem 1.25rem", borderRadius: 12,
-                    background: screenId === s.id ? "rgba(124,58,237,0.25)" : "transparent",
-                    border: screenId === s.id ? "1px solid rgba(124,58,237,0.6)" : "1px solid transparent",
-                    color: "#fff", cursor: "pointer", textAlign: "left", marginBottom: 4,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Tv size={20} color="#7C3AED" />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: "clamp(1rem,1.8vw,1.15rem)" }}>{s.name}</div>
-                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.8rem", marginTop: 2 }}>{s.code}</div>
-                  </div>
-                  {screenId === s.id && <ChevronRight size={18} color="#7C3AED" style={{ marginLeft: "auto" }} />}
-                </button>
-              ))}
+              ) : filteredScreens.map(s => {
+                const selected = screenId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setScreenId(s.id)}
+                    style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                      gap: 10, padding: "1.1rem 0.75rem", borderRadius: 12, textAlign: "center",
+                      background: selected ? "rgba(124,58,237,0.25)" : "rgba(255,255,255,0.03)",
+                      border: selected ? `1px solid rgba(124,58,237,0.6)` : "1px solid rgba(255,255,255,0.07)",
+                      color: "#fff", cursor: "pointer", transition: "all 0.15s", width: "100%",
+                      position: "relative",
+                    }}
+                  >
+                    {selected && (
+                      <CheckCircle2 size={15} color={PURPLE} style={{ position: "absolute", top: 8, right: 8 }} />
+                    )}
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: selected ? `rgba(124,58,237,0.3)` : `rgba(124,58,237,0.12)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Tv size={22} color={selected ? "#fff" : PURPLE} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "clamp(0.82rem,1.3vw,0.95rem)", lineHeight: 1.3 }}>{s.name}</div>
+                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "0.73rem", marginTop: 3, fontFamily: "monospace" }}>{s.code}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{ display: "flex", gap: 12, marginTop: "1.5rem" }}>
+            <div style={{ display: "flex", gap: 12, marginTop: "1.25rem" }}>
               <button
                 onClick={() => setStep("location")}
                 style={{
-                  padding: "1rem 1.5rem", borderRadius: 14, fontWeight: 600, fontSize: "1rem",
+                  padding: "0.95rem 1.5rem", borderRadius: 14, fontWeight: 600, fontSize: "1rem",
                   background: "transparent", color: "rgba(255,255,255,0.5)",
                   border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer",
                 }}
@@ -188,8 +226,8 @@ export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2
                 onClick={handleStart}
                 disabled={!screenId}
                 style={{
-                  flex: 1, padding: "1rem", borderRadius: 14, fontWeight: 700, fontSize: "1.05rem",
-                  background: screenId ? "#7C3AED" : "rgba(124,58,237,0.2)",
+                  flex: 1, padding: "0.95rem", borderRadius: 14, fontWeight: 700, fontSize: "1rem",
+                  background: screenId ? PURPLE : "rgba(124,58,237,0.2)",
                   color: screenId ? "#fff" : "rgba(255,255,255,0.3)",
                   border: "none", cursor: screenId ? "pointer" : "not-allowed",
                   transition: "all 0.2s",
@@ -202,9 +240,9 @@ export function FirstRunSetup({ onDone, onBack, titlePart1 = "URBAN", titlePart2
         )}
       </div>
 
-      {/* Device address — only shown in config context */}
+      {/* Device address */}
       {showAddress && (
-        <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
+        <div style={{ position: "fixed", bottom: 20, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
           <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.72rem", letterSpacing: "0.05em", fontFamily: "monospace" }}>
             {typeof window !== "undefined" ? window.location.origin + "/display/config" : ""}
           </p>
