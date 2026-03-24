@@ -47,6 +47,7 @@ export default function AdminActivityForm() {
     isActive: true,
     isFeatured: false,
     hideInfo: false,
+    hideLocationLogo: false,
     logoUrl: null as string | null,
     heroImageUrl: null as string | null,
     heroVideoUrl: null as string | null,
@@ -80,6 +81,7 @@ export default function AdminActivityForm() {
         isActive: existingData.isActive,
         isFeatured: existingData.isFeatured,
         hideInfo: existingData.hideInfo ?? false,
+        hideLocationLogo: existingData.hideLocationLogo ?? false,
         logoUrl: existingData.logoUrl || null,
         heroImageUrl: existingData.heroImageUrl || null,
         heroVideoUrl: existingData.heroVideoUrl || null,
@@ -332,6 +334,14 @@ export default function AdminActivityForm() {
                 <p className="text-xs text-muted-foreground mt-1">Hide name, description &amp; age on kiosk display</p>
               </div>
               <Switch checked={formData.hideInfo} onCheckedChange={c => setFormData({...formData, hideInfo: c})} />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
+              <div>
+                <Label className="text-base">Hide Location Logo</Label>
+                <p className="text-xs text-muted-foreground mt-1">Hide the location logo overlay on kiosk display</p>
+              </div>
+              <Switch checked={formData.hideLocationLogo} onCheckedChange={c => setFormData({...formData, hideLocationLogo: c})} />
             </div>
 
             <div className="pt-4 space-y-3">

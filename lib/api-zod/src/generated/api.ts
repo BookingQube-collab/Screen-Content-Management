@@ -20,10 +20,11 @@ const activityAssignmentFields = {
   locationId:       zod.number().int().nullish(),
   screenId:         zod.number().int().nullish(),
   moduleType:       zod.string().nullish(),
-  isOfflineEnabled: zod.boolean().optional(),
-  hideInfo:         zod.boolean().optional(),
-  validFrom:        zod.string().nullish(),
-  validTo:          zod.string().nullish(),
+  isOfflineEnabled:  zod.boolean().optional(),
+  hideInfo:          zod.boolean().optional(),
+  hideLocationLogo:  zod.boolean().optional(),
+  validFrom:         zod.string().nullish(),
+  validTo:           zod.string().nullish(),
 };
 
 /**
@@ -135,6 +136,7 @@ export const UpdateActivityBody = zod.object({
   isActive: zod.boolean().optional(),
   isFeatured: zod.boolean().optional(),
   hideInfo: zod.boolean().optional(),
+  hideLocationLogo: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
   locationId: zod.number().int().nullish(),
@@ -194,6 +196,7 @@ export const CreateActivityBody = zod.object({
   isActive: zod.boolean().optional(),
   isFeatured: zod.boolean().optional(),
   hideInfo: zod.boolean().optional(),
+  hideLocationLogo: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
   locationId: zod.number().int().nullish(),

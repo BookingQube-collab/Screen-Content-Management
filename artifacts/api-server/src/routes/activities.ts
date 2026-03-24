@@ -84,6 +84,7 @@ router.post("/activities/create", requireAuth, async (req, res): Promise<void> =
     isActive: parsed.data.isActive ?? true,
     isFeatured: parsed.data.isFeatured ?? false,
     hideInfo: parsed.data.hideInfo ?? false,
+    hideLocationLogo: parsed.data.hideLocationLogo ?? false,
     sortOrder: parsed.data.sortOrder ?? 0,
     ctaText: parsed.data.ctaText ?? "Explore Now",
     locationId: parsed.data.locationId ?? null,
@@ -143,6 +144,7 @@ router.patch("/activities/:id", requireAuth, async (req, res): Promise<void> => 
   if (body.isActive          !== undefined) updateData.isActive          = body.isActive;
   if (body.isFeatured        !== undefined) updateData.isFeatured        = body.isFeatured;
   if (body.hideInfo          !== undefined) updateData.hideInfo          = body.hideInfo;
+  if (body.hideLocationLogo  !== undefined) updateData.hideLocationLogo  = body.hideLocationLogo;
   if (body.sortOrder         !== undefined) updateData.sortOrder         = body.sortOrder;
   if (body.ctaText           !== undefined) updateData.ctaText           = body.ctaText;
   if (body.locationId        !== undefined) updateData.locationId        = body.locationId;
