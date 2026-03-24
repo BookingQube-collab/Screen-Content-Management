@@ -327,8 +327,8 @@ export default function DisplayPage() {
           }
         </button>
 
-        {/* ── Text overlay, watermark & gradients — hidden when video is playing or in gallery mode ── */}
-        {!act.heroVideoUrl && !galleryMode && (
+        {/* ── Text overlay, watermark & gradients — hidden when video is playing, in gallery mode, or activity has hideInfo ── */}
+        {!act.heroVideoUrl && !galleryMode && !act.hideInfo && (
           <>
             {/* Right-side text backdrop */}
             <div

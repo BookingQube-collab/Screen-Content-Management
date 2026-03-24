@@ -21,6 +21,7 @@ const activityAssignmentFields = {
   screenId:         zod.number().int().nullish(),
   moduleType:       zod.string().nullish(),
   isOfflineEnabled: zod.boolean().optional(),
+  hideInfo:         zod.boolean().optional(),
   validFrom:        zod.string().nullish(),
   validTo:          zod.string().nullish(),
 };
@@ -133,6 +134,7 @@ export const UpdateActivityBody = zod.object({
   heroGalleryUrls: zod.string().nullish(),
   isActive: zod.boolean().optional(),
   isFeatured: zod.boolean().optional(),
+  hideInfo: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
   locationId: zod.number().int().nullish(),
@@ -191,6 +193,7 @@ export const CreateActivityBody = zod.object({
   heroGalleryUrls: zod.string().nullish(),
   isActive: zod.boolean().optional(),
   isFeatured: zod.boolean().optional(),
+  hideInfo: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
   locationId: zod.number().int().nullish(),

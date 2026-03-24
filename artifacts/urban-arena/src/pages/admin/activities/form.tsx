@@ -46,6 +46,7 @@ export default function AdminActivityForm() {
     termsAndConditions: "",
     isActive: true,
     isFeatured: false,
+    hideInfo: false,
     logoUrl: null as string | null,
     heroImageUrl: null as string | null,
     heroVideoUrl: null as string | null,
@@ -78,6 +79,7 @@ export default function AdminActivityForm() {
         termsAndConditions: existingData.termsAndConditions || "",
         isActive: existingData.isActive,
         isFeatured: existingData.isFeatured,
+        hideInfo: existingData.hideInfo ?? false,
         logoUrl: existingData.logoUrl || null,
         heroImageUrl: existingData.heroImageUrl || null,
         heroVideoUrl: existingData.heroVideoUrl || null,
@@ -322,6 +324,14 @@ export default function AdminActivityForm() {
                 <p className="text-xs text-muted-foreground mt-1">Add visual highlight</p>
               </div>
               <Switch checked={formData.isFeatured} onCheckedChange={c => setFormData({...formData, isFeatured: c})} />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl border border-border">
+              <div>
+                <Label className="text-base">Hide Basic Info</Label>
+                <p className="text-xs text-muted-foreground mt-1">Hide name, description &amp; age on kiosk display</p>
+              </div>
+              <Switch checked={formData.hideInfo} onCheckedChange={c => setFormData({...formData, hideInfo: c})} />
             </div>
 
             <div className="pt-4 space-y-3">
