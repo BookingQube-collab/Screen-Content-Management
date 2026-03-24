@@ -36,7 +36,8 @@ export function useAppSettings() {
   const queryClient = useQueryClient();
 
   const { data: rawSettings, isLoading } = useListSettings({
-    request: { headers: authHeaders }
+    query: { refetchInterval: 60_000, staleTime: 0, refetchOnWindowFocus: false },
+    request: { headers: authHeaders },
   });
 
   const { mutateAsync: upsert } = useUpsertSetting({

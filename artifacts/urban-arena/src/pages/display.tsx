@@ -16,19 +16,25 @@ const DARK   = "#0c0820";
 interface ApiLocation { id: number; name: string; code: string; logoUrl?: string | null; }
 
 export default function DisplayPage() {
-  const { data: rawActivities, isLoading: loadAct, isError: actError } = useListDisplayActivities();
-  const { settings,            isLoading: loadSet }  = useAppSettings();
+  const { data: rawActivities, isLoading: loadAct, isError: actError } = useListDisplayActivities({
+    query: { refetchInterval: 30_000, staleTime: 0, refetchOnWindowFocus: false },
+  });
+  const { settings, isLoading: loadSet } = useAppSettings();
   const { config, isConfigured, loaded: configLoaded } = useScreenConfig();
   const [, setLocation] = useLocation();
   const [showSetup, setShowSetup] = useState(false);
   const [locations, setLocations] = useState<ApiLocation[]>([]);
 
-  // Fetch locations for logo lookup (public endpoint)
+  // Fetch locations for logo lookup — polls every 60 s so logo updates apply without reload
   useEffect(() => {
-    fetch("/api/admin/locations")
-      .then(r => r.json())
-      .then(setLocations)
-      .catch(() => {});
+    const load = () =>
+      fetch("/api/admin/locations")
+        .then(r => r.json())
+        .then(setLocations)
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
   }, []);
 
   // Show first-run setup when config is not yet set
@@ -87,6 +93,13 @@ export default function DisplayPage() {
 
   const [idx, setIdx] = useState(0);
   const [galleryIdx, setGalleryIdx] = useState(0);
+
+  // Clamp idx when the activity list changes (e.g. an activity is removed mid-display)
+  useEffect(() => {
+    if (activities && activities.length > 0 && idx >= activities.length) {
+      setIdx(0);
+    }
+  }, [activities]);
 
   const go = (next: number) => {
     if (!activities) return;
