@@ -5,11 +5,13 @@ import { useListActivities, useUpdateActivity, useDeleteActivity, useReorderActi
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Video, MapPin, Tv, Filter } from "lucide-react";
+import { Edit2, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Video, MapPin, Tv, Filter, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ApiLocation { id: number; name: string; code: string; }
 interface ApiScreen   { id: number; name: string; code: string; locationId: number | null; }
+
+interface SyncResult { id: number; name: string; ok: boolean; msg: string; }
 
 export default function AdminActivities() {
   const { authHeaders } = useRequireAuth();
@@ -19,6 +21,32 @@ export default function AdminActivities() {
   const [screens, setScreens]             = useState<ApiScreen[]>([]);
   const [filterLocationId, setFilterLocationId] = useState<number | null>(null);
   const [filterScreenId,   setFilterScreenId]   = useState<number | null>(null);
+
+  // ── Sync All state ────────────────────────────────────────────────────────
+  const [syncing, setSyncing]           = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ done: number; total: number } | null>(null);
+  const [syncResults, setSyncResults]   = useState<SyncResult[] | null>(null);
+
+  const handleSyncAll = async () => {
+    if (!sorted.length) return;
+    setSyncing(true);
+    setSyncProgress({ done: 0, total: sorted.length });
+    setSyncResults(null);
+    const results: SyncResult[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const act = sorted[i] as any;
+      try {
+        const res  = await fetch(`/api/admin/drive/${act.id}/sync`, { method: "POST", headers: authHeaders });
+        const data = await res.json();
+        results.push({ id: act.id, name: act.name, ok: !!data.success, msg: data.message || "" });
+      } catch {
+        results.push({ id: act.id, name: act.name, ok: false, msg: "Request failed" });
+      }
+      setSyncProgress({ done: i + 1, total: sorted.length });
+    }
+    setSyncResults(results);
+    setSyncing(false);
+  };
 
   useEffect(() => {
     fetch("/api/admin/locations", { headers: authHeaders }).then(r => r.json()).then(d => { if (Array.isArray(d)) setLocations(d); }).catch(() => {});
@@ -91,11 +119,52 @@ export default function AdminActivities() {
           <h1 className="text-2xl sm:text-3xl font-bold">Manage Activities</h1>
           <p className="text-muted-foreground mt-1">Control what appears on the kiosk displays.</p>
         </div>
-        <Link href="/admin/activities/new" className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all whitespace-nowrap">
-          <Plus className="w-5 h-5" />
-          Add Activity
-        </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleSyncAll}
+            disabled={syncing || !sorted.length}
+            className="flex items-center gap-2 whitespace-nowrap"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing && syncProgress
+              ? `Syncing ${syncProgress.done} / ${syncProgress.total}…`
+              : "Sync All from Drive"}
+          </Button>
+          <Link href="/admin/activities/new" className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all whitespace-nowrap">
+            <Plus className="w-5 h-5" />
+            Add Activity
+          </Link>
+        </div>
       </div>
+
+      {/* ── Sync Results Banner ────────────────────────────────────────────── */}
+      {syncResults && (
+        <div className="mb-6 bg-card border border-border rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-sm">
+              Drive Sync Complete —{" "}
+              <span className="text-green-400">{syncResults.filter(r => r.ok).length} succeeded</span>
+              {syncResults.some(r => !r.ok) && (
+                <>, <span className="text-red-400">{syncResults.filter(r => !r.ok).length} failed</span></>
+              )}
+            </p>
+            <button onClick={() => setSyncResults(null)} className="text-muted-foreground hover:text-foreground text-xs underline">Dismiss</button>
+          </div>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {syncResults.map(r => (
+              <div key={r.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                {r.ok
+                  ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-none" />
+                  : <XCircle     className="w-3.5 h-3.5 text-red-400    flex-none" />}
+                <span className="font-medium text-foreground">{r.name}</span>
+                <span>—</span>
+                <span>{r.msg}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Filters ── */}
       <div className="flex flex-wrap gap-3 mb-6 p-4 bg-card border border-border rounded-2xl">
