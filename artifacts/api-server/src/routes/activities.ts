@@ -80,6 +80,7 @@ router.post("/activities/create", requireAuth, async (req, res): Promise<void> =
     heroVideoUrl: parsed.data.heroVideoUrl ?? null,
     cardImageUrl: parsed.data.cardImageUrl ?? null,
     thumbnailUrl: parsed.data.thumbnailUrl ?? null,
+    heroGalleryUrls: parsed.data.heroGalleryUrls ?? null,
     isActive: parsed.data.isActive ?? true,
     isFeatured: parsed.data.isFeatured ?? false,
     hideInfo: parsed.data.hideInfo ?? false,
@@ -138,6 +139,7 @@ router.patch("/activities/:id", requireAuth, async (req, res): Promise<void> => 
   if (body.heroVideoUrl      !== undefined) updateData.heroVideoUrl      = body.heroVideoUrl;
   if (body.cardImageUrl      !== undefined) updateData.cardImageUrl      = body.cardImageUrl;
   if (body.thumbnailUrl      !== undefined) updateData.thumbnailUrl      = body.thumbnailUrl;
+  if (body.heroGalleryUrls   !== undefined) updateData.heroGalleryUrls   = body.heroGalleryUrls;
   if (body.isActive          !== undefined) updateData.isActive          = body.isActive;
   if (body.isFeatured        !== undefined) updateData.isFeatured        = body.isFeatured;
   if (body.hideInfo          !== undefined) updateData.hideInfo          = body.hideInfo;
