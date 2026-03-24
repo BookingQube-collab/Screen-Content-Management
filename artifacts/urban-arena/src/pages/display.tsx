@@ -214,7 +214,7 @@ export default function DisplayPage() {
       style={{
         fontFamily:          "system-ui, sans-serif",
         display:             "grid",
-        gridTemplateRows:    galleryMode ? "100%" : "80% 20%",
+        gridTemplateRows:    (galleryMode || act.hideInfo) ? "100%" : "80% 20%",
         width:               "100dvw",
         height:              "100dvh",
         overscrollBehavior:  "none",
@@ -411,9 +411,9 @@ export default function DisplayPage() {
       </div>
 
       {/* ══════════════════════════════════════════════
-          BOTTOM 20% — stats bar + next item (hidden in gallery mode)
+          BOTTOM 20% — stats bar + next item (hidden in gallery mode or when hideInfo is on)
       ══════════════════════════════════════════════ */}
-      {!galleryMode && (
+      {!galleryMode && !act.hideInfo && (
       <div
         className="flex"
         style={{ background: "#000000", borderTop: "1px solid rgba(168,85,247,0.25)" }}
