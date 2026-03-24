@@ -1,0 +1,122 @@
+I do NOT want to change the existing UI, existing flow, or any current working code logic unless it is strictly required for this new feature. Keep the current codebase structure and behavior the same. Only add the minimum backend and admin panel changes needed for the feature below.
+
+Objective:
+Fix media persistence and add Google Drive based asset sync for activities.
+
+Issue 1: Uploaded media is disappearing
+Right now, when I upload images/videos from the admin panel, they show at first but later disappear. I want uploaded files to be stored permanently in backend storage/database and remain available forever until I manually replace, update, or delete them.
+
+Required fix:
+1. Investigate why uploaded poster/image/video is disappearing after some time.
+2. Fix the root cause without changing existing frontend flow.
+3. Ensure uploaded files are saved permanently in backend storage and database.
+4. Files should persist after refresh, restart, logout, redeploy, or temporary internet issue.
+5. Existing uploaded file references should load correctly on activity detail/listing pages.
+6. Add validation and error logs if upload/save fails.
+7. Do not use temporary memory storage for uploaded media.
+8. Keep current admin panel upload process the same from user side.
+
+Issue 2: Google Drive integration for activity assets
+I want to integrate Google Drive in admin panel so that each activity can have its own folder created automatically inside the main folder structure.
+
+Example:
+Main folder: Urban Arena
+Activity name: Kids Tribe
+
+When activity “Kids Tribe” is created or when I click setup/sync for the first time, automatically create this folder structure in Google Drive:
+
+Urban Arena/
+  Kids Tribe/
+    video/
+    poster/
+    thumbnail/
+    logo/
+
+Feature requirements:
+1. Add Google Drive integration in backend using Google Drive API.
+2. Add admin configuration for connecting Google Drive credentials securely.
+3. Use one main parent folder called “Urban Arena”.
+4. For each activity, create a subfolder with activity name automatically, for example “Kids Tribe”.
+5. Inside each activity folder, create 4 subfolders automatically:
+   - video
+   - poster
+   - thumbnail
+   - logo
+6. Folder creation should happen only one time. If folder already exists, do not create duplicate folders.
+7. Add a manual “Sync” button on the activity page in admin panel.
+8. When sync button is clicked:
+   - check Google Drive folders
+   - fetch files from all 4 subfolders
+   - store file metadata and file URLs into database
+   - map them correctly to that activity
+9. After first setup, if any new file is uploaded later into those Drive folders, manual sync should fetch and save the new files into database.
+10. Keep old files unless replaced intentionally.
+11. Prevent duplicate database entries for same file.
+12. Use unique file ID from Google Drive to identify already synced files.
+13. Save useful metadata in database, such as:
+   - activity_id
+   - file_type (video/poster/thumbnail/logo)
+   - file_name
+   - drive_file_id
+   - drive_folder_id
+   - file_url or public URL
+   - mime_type
+   - created_at
+   - updated_at
+   - sync_status
+14. Add clear backend services for:
+   - createActivityDriveFolders(activityName)
+   - syncActivityDriveAssets(activityId)
+   - getActivityAssets(activityId)
+15. Add logs for sync success/failure.
+16. If folder or files are missing, show proper message in admin panel.
+17. Do not break existing upload functionality. Keep current upload option and add this as an additional feature.
+18. If possible, allow both:
+   - current direct upload method
+   - Google Drive sync method
+19. Add a small section in activity admin page showing:
+   - Drive folder status
+   - last sync time
+   - sync button
+   - number of synced files by type
+20. Make backend implementation production-safe and reusable.
+
+Important logic:
+- Existing code must remain same as much as possible.
+- Do not redesign the full admin page.
+- Do not remove current activity creation flow.
+- Only add minimal changes required for this module.
+- Keep naming clean and reusable.
+- Make solution scalable for multiple activities.
+
+Expected example flow:
+1. Admin creates or opens activity: Kids Tribe
+2. Admin clicks “Setup Drive” or “Sync”
+3. System creates:
+   Urban Arena/Kids Tribe/video
+   Urban Arena/Kids Tribe/poster
+   Urban Arena/Kids Tribe/thumbnail
+   Urban Arena/Kids Tribe/logo
+4. Admin uploads files into those folders in Google Drive
+5. Admin clicks Sync
+6. System fetches files and stores metadata into database
+7. Frontend uses database records and shows media permanently
+8. Later, if new files are added in Drive, clicking Sync again updates database without duplicate records
+
+Please do the following:
+1. Analyze current project structure first.
+2. Find why uploaded files disappear.
+3. Fix persistence issue.
+4. Add Google Drive integration with minimal code disturbance.
+5. Add database schema changes if needed.
+6. Add backend API endpoints if needed.
+7. Add minimal admin UI changes for sync/setup/status.
+8. Keep current design and logic intact.
+9. Comment code clearly where new feature is added.
+10. At the end, give me a summary of:
+   - root cause found
+   - files changed
+   - database changes
+   - API endpoints added
+   - how sync works
+   - how to configure Google Drive credentials

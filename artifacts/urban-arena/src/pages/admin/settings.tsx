@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { Save, Loader2, Upload, X, ImageIcon, HardDrive } from "lucide-react";
 
 export default function AdminSettings() {
   const { settings, isLoading, updateSetting } = useAppSettings();
@@ -244,6 +244,9 @@ export default function AdminSettings() {
           </div>
         </div>
 
+        {/* ── Google Drive Credentials ─────────────────────────────────── */}
+        <GoogleDriveSettings authHeaders={authHeaders} />
+
         {/* Carousel Mechanics */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
           <h2 className="text-xl font-semibold border-b border-border pb-4">Carousel Behavior</h2>
@@ -287,5 +290,105 @@ export default function AdminSettings() {
 
       </div>
     </AdminLayout>
+  );
+}
+
+// ── Google Drive Credentials Component ────────────────────────────────────────
+
+function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, string> }) {
+  const [keyJson, setKeyJson] = useState("");
+  const [parentId, setParentId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    // Load existing credentials from settings
+    fetch("/api/settings", { headers: authHeaders })
+      .then(r => r.json())
+      .then((rows: { key: string; value: string }[]) => {
+        const keyRow = rows.find(r => r.key === "google_drive_service_account_key");
+        const pidRow = rows.find(r => r.key === "google_drive_parent_folder_id");
+        if (keyRow) setKeyJson(keyRow.value);
+        if (pidRow) setParentId(pidRow.value);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const clientEmail = (() => {
+    try { return keyJson ? JSON.parse(keyJson).client_email : null; } catch { return null; }
+  })();
+
+  const save = async () => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "google_drive_service_account_key", value: keyJson }),
+      });
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "google_drive_parent_folder_id", value: parentId }),
+      });
+      setMsg({ ok: true, text: "Google Drive credentials saved." });
+    } catch {
+      setMsg({ ok: false, text: "Failed to save credentials." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-5">
+      <div className="flex items-center gap-2 border-b border-border pb-4">
+        <HardDrive className="w-5 h-5 text-primary" />
+        <h2 className="text-xl font-semibold">Google Drive Integration</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Paste your GCP Service Account JSON key below. The service account must have access to your Drive folder.
+        Share the parent folder with <span className="font-mono text-xs text-primary">{clientEmail || "client_email from JSON"}</span>.
+      </p>
+
+      <div className="space-y-2">
+        <Label>Service Account Key (JSON)</Label>
+        <Textarea
+          className="font-mono text-xs h-28"
+          placeholder='{"type":"service_account","project_id":"...","client_email":"...","private_key":"..."}'
+          value={keyJson}
+          onChange={e => setKeyJson(e.target.value)}
+        />
+        {clientEmail && (
+          <p className="text-xs text-green-400">✓ Parsed — {clientEmail}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Parent Folder ID <span className="text-muted-foreground font-normal">(optional)</span></Label>
+        <Input
+          className="font-mono text-sm"
+          placeholder="Leave blank to use Drive root"
+          value={parentId}
+          onChange={e => setParentId(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Copy the folder ID from the Drive URL: drive.google.com/drive/folders/<strong>FOLDER_ID</strong>
+        </p>
+      </div>
+
+      {msg && (
+        <p className={`text-sm font-medium ${msg.ok ? "text-green-400" : "text-red-400"}`}>{msg.text}</p>
+      )}
+
+      <Button onClick={save} disabled={saving} size="sm">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+        Save Drive Credentials
+      </Button>
+    </div>
   );
 }

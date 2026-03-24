@@ -1,72 +1,150 @@
+/**
+ * uploads.ts — Persistent file upload route using Replit Object Storage (GCS).
+ *
+ * Root cause of disappearing files:
+ *   The previous implementation stored files on the local disk (process.cwd()/uploads).
+ *   Replit's container filesystem is ephemeral — every restart/redeploy wipes it.
+ *   Fix: files are now uploaded to GCS-backed Object Storage which persists forever.
+ *
+ * API surface is unchanged from the old implementation:
+ *   POST /api/uploads/image           — upload an image, returns { url, filename }
+ *   POST /api/uploads/video           — upload a video,  returns { url, filename }
+ *   GET  /api/uploads/files/:filename — serve a file from Object Storage
+ */
+
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 import { requireAuth } from "./auth";
+import { objectStorageClient } from "../lib/objectStorage";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+
+if (!BUCKET_ID) {
+  logger.warn("DEFAULT_OBJECT_STORAGE_BUCKET_ID not set — uploads will fail");
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-    cb(null, name);
-  },
-});
+function getBucket() {
+  if (!BUCKET_ID) throw new Error("Object Storage not configured");
+  return objectStorageClient.bucket(BUCKET_ID);
+}
+
+/** Upload a buffer to GCS and return the storage path (used as filename key). */
+async function uploadToGCS(
+  buffer: Buffer,
+  originalName: string,
+  mimeType: string,
+): Promise<string> {
+  const ext = path.extname(originalName) || "";
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+  const storagePath = `uploads/${filename}`;
+
+  const bucket = getBucket();
+  const file = bucket.file(storagePath);
+
+  await file.save(buffer, {
+    metadata: { contentType: mimeType },
+    resumable: false,
+  });
+
+  logger.info({ storagePath, size: buffer.length }, "File saved to Object Storage");
+  return filename; // return just the filename portion for URL construction
+}
+
+// Use memory storage — buffer is held in RAM briefly then pushed to GCS.
+const memoryStorage = multer.memoryStorage();
 
 const imageUpload = multer({
-  storage,
+  storage: memoryStorage,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    cb(null, allowed.includes(file.mimetype));
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error("Invalid image type"));
+      return;
+    }
+    cb(null, true);
   },
 });
 
 const videoUpload = multer({
-  storage,
+  storage: memoryStorage,
   limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
-    cb(null, allowed.includes(file.mimetype));
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error("Invalid video type"));
+      return;
+    }
+    cb(null, true);
   },
 });
 
-router.post("/uploads/image", requireAuth, imageUpload.single("file"), (req, res): void => {
+router.post("/uploads/image", requireAuth, imageUpload.single("file"), async (req, res): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ error: "No image file uploaded or invalid type" });
     return;
   }
-  const url = `/api/uploads/files/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename });
+  try {
+    const filename = await uploadToGCS(req.file.buffer, req.file.originalname, req.file.mimetype);
+    const url = `/api/uploads/files/${filename}`;
+    res.json({ url, filename });
+  } catch (err: any) {
+    logger.error({ err: err.message }, "Image upload to Object Storage failed");
+    res.status(500).json({ error: "Upload failed: " + err.message });
+  }
 });
 
-router.post("/uploads/video", requireAuth, videoUpload.single("file"), (req, res): void => {
+router.post("/uploads/video", requireAuth, videoUpload.single("file"), async (req, res): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ error: "No video file uploaded or invalid type" });
     return;
   }
-  const url = `/api/uploads/files/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename });
+  try {
+    const filename = await uploadToGCS(req.file.buffer, req.file.originalname, req.file.mimetype);
+    const url = `/api/uploads/files/${filename}`;
+    res.json({ url, filename });
+  } catch (err: any) {
+    logger.error({ err: err.message }, "Video upload to Object Storage failed");
+    res.status(500).json({ error: "Upload failed: " + err.message });
+  }
 });
 
-router.get("/uploads/files/:filename", (req, res): void => {
+/** Serve a file from GCS by streaming it back to the client. */
+router.get("/uploads/files/:filename", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.filename) ? req.params.filename[0] : req.params.filename;
   const filename = path.basename(raw);
-  const filePath = path.join(uploadsDir, filename);
-  if (!fs.existsSync(filePath)) {
-    res.status(404).json({ error: "File not found" });
-    return;
+  const storagePath = `uploads/${filename}`;
+
+  try {
+    const bucket = getBucket();
+    const file = bucket.file(storagePath);
+    const [exists] = await file.exists();
+
+    if (!exists) {
+      res.status(404).json({ error: "File not found" });
+      return;
+    }
+
+    const [metadata] = await file.getMetadata();
+    const contentType = (metadata.contentType as string | undefined) || "application/octet-stream";
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+
+    file.createReadStream()
+      .on("error", (err) => {
+        logger.error({ err: err.message, storagePath }, "GCS read stream error");
+        if (!res.headersSent) res.status(500).end();
+      })
+      .pipe(res);
+  } catch (err: any) {
+    logger.error({ err: err.message, storagePath }, "Error serving file from Object Storage");
+    res.status(500).json({ error: "Could not retrieve file" });
   }
-  res.sendFile(filePath);
 });
 
 export default router;

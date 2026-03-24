@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/admin/MediaUpload";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, HardDrive, RefreshCw, FolderOpen } from "lucide-react";
 
 interface ApiLocation { id: number; name: string; }
 interface ApiScreen   { id: number; name: string; locationId: number | null; moduleType: string; }
@@ -326,6 +326,184 @@ export default function AdminActivityForm() {
           </div>
         </div>
       </form>
+
+      {/* ── Google Drive Sync Panel — edit mode only ────────────────────────── */}
+      {isEdit && (
+        <div className="mt-8">
+          <DriveSyncPanel activityId={id} activityName={formData.name} authHeaders={authHeaders} />
+        </div>
+      )}
     </AdminLayout>
+  );
+}
+
+// ── Drive Sync Panel ───────────────────────────────────────────────────────────
+
+interface DriveStatus {
+  folderRecord: {
+    activityFolderId: string | null;
+    lastSyncAt: string | null;
+    videoFolderId: string | null;
+    posterFolderId: string | null;
+    thumbnailFolderId: string | null;
+    logoFolderId: string | null;
+  } | null;
+  counts: Record<string, number>;
+}
+
+function DriveSyncPanel({
+  activityId,
+  activityName,
+  authHeaders,
+}: {
+  activityId: number;
+  activityName: string;
+  authHeaders: Record<string, string>;
+}) {
+  const [status, setStatus] = useState<DriveStatus | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [setting_up, setSettingUp] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const loadStatus = () => {
+    setLoadingStatus(true);
+    fetch(`/api/admin/drive/${activityId}/status`, { headers: authHeaders })
+      .then(r => r.json())
+      .then(setStatus)
+      .catch(() => setStatus(null))
+      .finally(() => setLoadingStatus(false));
+  };
+
+  useEffect(() => { loadStatus(); }, [activityId]);
+
+  const handleSetup = async () => {
+    if (!activityName.trim()) {
+      setMsg({ ok: false, text: "Save the activity first before setting up Drive folders." });
+      return;
+    }
+    setSettingUp(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/drive/${activityId}/setup`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ activityName }),
+      });
+      const data = await res.json();
+      setMsg({ ok: data.success, text: data.message });
+      if (data.success) loadStatus();
+    } catch {
+      setMsg({ ok: false, text: "Setup request failed." });
+    } finally {
+      setSettingUp(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/drive/${activityId}/sync`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      const data = await res.json();
+      setMsg({ ok: data.success, text: `${data.message} (${data.synced} files synced)` });
+      if (data.errors?.length) {
+        setMsg({ ok: false, text: data.errors.join("; ") });
+      }
+      loadStatus();
+    } catch {
+      setMsg({ ok: false, text: "Sync request failed." });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const isSetup = !!status?.folderRecord?.activityFolderId;
+  const lastSync = status?.folderRecord?.lastSyncAt
+    ? new Date(status.folderRecord.lastSyncAt).toLocaleString()
+    : "Never";
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-5">
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <div className="flex items-center gap-2">
+          <HardDrive className="w-5 h-5 text-primary" />
+          <h2 className="text-xl font-semibold">Google Drive Assets</h2>
+        </div>
+        {isSetup && (
+          <a
+            href={`https://drive.google.com/drive/folders/${status?.folderRecord?.activityFolderId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <FolderOpen className="w-4 h-4" /> Open Folder
+          </a>
+        )}
+      </div>
+
+      {loadingStatus ? (
+        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading Drive status…
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {["video", "poster", "thumbnail", "logo"].map(type => (
+              <div key={type} className="bg-secondary/50 rounded-xl p-3 text-center border border-border">
+                <p className="text-xs text-muted-foreground capitalize mb-1">{type}</p>
+                <p className="text-2xl font-bold">{status?.counts?.[type] ?? 0}</p>
+                <p className="text-xs text-muted-foreground">files</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              Status: <span className={isSetup ? "text-green-400" : "text-yellow-400"}>
+                {isSetup ? "Folders ready" : "Not set up"}
+              </span>
+            </span>
+            <span className="text-muted-foreground">Last sync: {lastSync}</span>
+          </div>
+
+          {msg && (
+            <p className={`text-sm font-medium ${msg.ok ? "text-green-400" : "text-red-400"}`}>{msg.text}</p>
+          )}
+
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSetup}
+              disabled={setting_up || syncing}
+            >
+              {setting_up ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FolderOpen className="w-4 h-4 mr-2" />}
+              {isSetup ? "Re-setup Folders" : "Setup Drive Folders"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSync}
+              disabled={!isSetup || syncing || setting_up}
+            >
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              Sync from Drive
+            </Button>
+          </div>
+
+          {!isSetup && (
+            <p className="text-xs text-muted-foreground bg-secondary/30 rounded-lg p-3">
+              Click <strong>Setup Drive Folders</strong> to create the folder structure:
+              Urban Arena / {activityName || "Activity Name"} / (video, poster, thumbnail, logo)
+            </p>
+          )}
+        </>
+      )}
+    </div>
   );
 }
