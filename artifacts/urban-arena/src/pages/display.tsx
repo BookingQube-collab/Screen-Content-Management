@@ -431,25 +431,33 @@ export default function DisplayPage() {
 
             {/* Logo row — settings + activity logos, right-aligned, each shown only if uploaded */}
             {(() => {
-              const logos = [
-                { src: settings.logo_url, alt: "Brand" },
-                { src: act.logoUrl,        alt: act.name },
-              ].filter(l => l.src);
-              if (!logos.length) return null;
+              const brandLogo    = settings.logo_url ? { src: settings.logo_url, alt: "Brand" } : null;
+              const activityLogo = act.logoUrl        ? { src: act.logoUrl,        alt: act.name }  : null;
+              if (!brandLogo && !activityLogo) return null;
               return (
-                <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px,1.2vw,18px)", flexShrink: 0, marginLeft: "auto" }}>
-                  {logos.map((l, i) => (
+                <div style={{ display: "flex", alignItems: "center", gap: "clamp(10px,1.5vw,22px)", flexShrink: 0, marginLeft: "auto" }}>
+                  {brandLogo && (
                     <img
-                      key={i}
-                      src={l.src!}
-                      alt={l.alt}
+                      src={brandLogo.src}
+                      alt={brandLogo.alt}
                       style={{
                         maxHeight: "clamp(48px,7.5vw,108px)",
                         maxWidth:  "clamp(90px,13vw,190px)",
                         objectFit: "contain",
                       }}
                     />
-                  ))}
+                  )}
+                  {activityLogo && (
+                    <img
+                      src={activityLogo.src}
+                      alt={activityLogo.alt}
+                      style={{
+                        maxHeight: "clamp(80px,12vw,160px)",
+                        maxWidth:  "clamp(80px,12vw,160px)",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
                 </div>
               );
             })()}
