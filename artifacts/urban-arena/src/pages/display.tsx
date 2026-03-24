@@ -452,8 +452,8 @@ export default function DisplayPage() {
                       src={activityLogo.src}
                       alt={activityLogo.alt}
                       style={{
-                        maxHeight: "clamp(80px,12vw,160px)",
-                        maxWidth:  "clamp(80px,12vw,160px)",
+                        height:    "clamp(110px,14vw,180px)",
+                        maxWidth:  "clamp(110px,14vw,180px)",
                         objectFit: "contain",
                       }}
                     />
