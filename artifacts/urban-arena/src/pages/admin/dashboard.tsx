@@ -2,11 +2,27 @@ import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { useListActivities } from "@workspace/api-client-react";
-import { Activity, PlayCircle, Eye, Monitor, MapPin, Tv } from "lucide-react";
+import { Activity, PlayCircle, Eye, Monitor, MapPin, Tv, HardDrive, Video, Image as ImageIcon, FolderOpen, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 
 interface Location { id: number; name: string; code: string; }
 interface Screen   { id: number; name: string; code: string; locationId: number | null; locationName?: string | null; isActive: boolean; }
+
+interface DriveSummary {
+  folderCount: number;
+  syncedCount: number;
+  totalAssets: number;
+  totals: Record<string, number>;
+  perActivity: {
+    activityId: number;
+    activityName: string;
+    activityFolderId: string | null;
+    hasFolders: boolean;
+    lastSyncAt: string | null;
+    fileCounts: Record<string, number>;
+    totalFiles: number;
+  }[];
+}
 
 export default function AdminDashboard() {
   const { authHeaders } = useRequireAuth();
@@ -18,6 +34,17 @@ export default function AdminDashboard() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [screens,   setScreens]   = useState<Screen[]>([]);
   const [loadMeta,  setLoadMeta]  = useState(true);
+  const [driveSummary, setDriveSummary] = useState<DriveSummary | null>(null);
+  const [loadDrive,    setLoadDrive]    = useState(true);
+
+  const fetchDriveSummary = () => {
+    setLoadDrive(true);
+    fetch("/api/admin/drive/summary", { headers: authHeaders })
+      .then(r => r.json())
+      .then(setDriveSummary)
+      .catch(() => setDriveSummary(null))
+      .finally(() => setLoadDrive(false));
+  };
 
   useEffect(() => {
     Promise.all([
@@ -25,6 +52,8 @@ export default function AdminDashboard() {
       fetch("/api/admin/screens",   { headers: authHeaders }).then(r => r.json()),
     ]).then(([locs, scrs]) => { setLocations(locs); setScreens(scrs); })
       .finally(() => setLoadMeta(false));
+
+    fetchDriveSummary();
   }, []);
 
   const isLoading = loadAct || loadMeta;
@@ -190,6 +219,103 @@ export default function AdminDashboard() {
           </table>
         )}
       </ReportCard>
+
+      {/* ── Google Drive Dashboard ──────────────────────────────────────────── */}
+      <div className="mt-6 bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <HardDrive className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-display font-bold">Google Drive Status</h2>
+          </div>
+          <button
+            onClick={fetchDriveSummary}
+            disabled={loadDrive}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadDrive ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Aggregate stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          {[
+            { label: "Folders Setup",  value: loadDrive ? "…" : driveSummary?.folderCount ?? 0,   icon: FolderOpen, color: "text-violet-400" },
+            { label: "Synced",         value: loadDrive ? "…" : driveSummary?.syncedCount ?? 0,   icon: RefreshCw,  color: "text-green-400" },
+            { label: "Videos",         value: loadDrive ? "…" : driveSummary?.totals?.video ?? 0, icon: Video,      color: "text-blue-400" },
+            { label: "Images",         value: loadDrive ? "…" : ((driveSummary?.totals?.poster ?? 0) + (driveSummary?.totals?.thumbnail ?? 0) + (driveSummary?.totals?.logo ?? 0)), icon: ImageIcon, color: "text-pink-400" },
+          ].map(({ label, value, icon: Icon, color }) => (
+            <div key={label} className="bg-secondary/50 border border-border rounded-xl p-4 flex flex-col items-center text-center gap-1">
+              <Icon className={`w-4 h-4 ${color}`} />
+              <span className="text-2xl font-bold">{value}</span>
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-activity breakdown */}
+        {loadDrive ? (
+          <p className="text-sm text-muted-foreground text-center py-4">Loading Drive data…</p>
+        ) : !driveSummary || driveSummary.perActivity.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No Drive folders set up yet.{" "}
+            <Link href="/admin/settings" className="text-primary underline">Configure credentials</Link>{" "}
+            then use <Link href="/admin/activities" className="text-primary underline">Sync All from Drive</Link>.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground text-xs uppercase tracking-wider">
+                  <th className="text-left py-2 font-medium">Activity</th>
+                  <th className="text-center py-2 font-medium">Folders</th>
+                  <th className="text-center py-2 font-medium">Video</th>
+                  <th className="text-center py-2 font-medium">Poster</th>
+                  <th className="text-center py-2 font-medium">Thumb</th>
+                  <th className="text-center py-2 font-medium">Logo</th>
+                  <th className="text-right py-2 font-medium">Last Sync</th>
+                </tr>
+              </thead>
+              <tbody>
+                {driveSummary.perActivity.map(a => (
+                  <tr key={a.activityId} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="py-2.5 font-medium">
+                      <div className="flex items-center gap-2">
+                        {a.activityFolderId ? (
+                          <a
+                            href={`https://drive.google.com/drive/folders/${a.activityFolderId}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="hover:text-primary transition-colors truncate max-w-[160px]"
+                          >
+                            {a.activityName}
+                          </a>
+                        ) : (
+                          <span className="truncate max-w-[160px]">{a.activityName}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${a.hasFolders ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                        {a.hasFolders ? "Ready" : "None"}
+                      </span>
+                    </td>
+                    {["video", "poster", "thumbnail", "logo"].map(t => (
+                      <td key={t} className="py-2.5 text-center">
+                        <span className={`font-mono text-sm ${(a.fileCounts[t] ?? 0) > 0 ? "text-foreground" : "text-muted-foreground/40"}`}>
+                          {a.fileCounts[t] ?? 0}
+                        </span>
+                      </td>
+                    ))}
+                    <td className="py-2.5 text-right text-xs text-muted-foreground">
+                      {a.lastSyncAt ? new Date(a.lastSyncAt).toLocaleDateString() : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <div className="mt-6 bg-card border border-border rounded-2xl p-6 shadow-sm">
         <h2 className="text-xl font-display font-bold mb-4">Quick Guide</h2>
