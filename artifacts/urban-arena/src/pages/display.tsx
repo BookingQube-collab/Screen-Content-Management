@@ -42,12 +42,12 @@ export default function DisplayPage() {
     if (configLoaded && !isConfigured) setShowSetup(true);
   }, [configLoaded, isConfigured]);
 
-  // Hidden tap zone — 5 taps in top-left corner → navigate to /display/config
+  // Hidden tap zone — 4 taps in top-left corner within 3 s → navigate to /display/config
   const tapTimestamps = useRef<number[]>([]);
   const handleHiddenTap = useCallback(() => {
     const now = Date.now();
     tapTimestamps.current = [...tapTimestamps.current.filter(t => now - t < 3000), now];
-    if (tapTimestamps.current.length >= 5) {
+    if (tapTimestamps.current.length >= 4) {
       tapTimestamps.current = [];
       setLocation("/display/config");
     }
@@ -76,10 +76,16 @@ export default function DisplayPage() {
     if (!effectiveRaw) return effectiveRaw;
     if (!config.screenId && !config.locationId) return effectiveRaw;
     return effectiveRaw.filter(a => {
+      // Activities with no assignment show on every kiosk
       const hasAssignment = (a.locationId != null) || (a.screenId != null);
       if (!hasAssignment) return true;
-      if (config.screenId   && a.screenId   === config.screenId)   return true;
-      if (config.locationId && a.locationId === config.locationId) return true;
+
+      // If the activity is pinned to a specific screen, match by screenId only
+      if (a.screenId != null) return a.screenId === config.screenId;
+
+      // Activity is pinned to a location only — match by locationId
+      if (a.locationId != null) return a.locationId === config.locationId;
+
       return false;
     });
   })();
@@ -190,8 +196,9 @@ export default function DisplayPage() {
   );
 
   const count   = activities.length;
-  const act     = activities[idx];
-  const nextAct = activities[(idx + 1) % count];
+  const safeIdx = idx % count;
+  const act     = activities[safeIdx];
+  const nextAct = activities[(safeIdx + 1) % count];
 
   // Parse background gallery for current activity
   const gallery = (() => { try { return JSON.parse((act as any).heroGalleryUrls || "[]") as string[]; } catch { return []; } })();
