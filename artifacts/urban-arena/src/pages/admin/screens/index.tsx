@@ -17,13 +17,13 @@ const EMPTY = { name: "", code: "", locationId: null as number | null, moduleTyp
 
 export default function AdminScreens() {
   const { authHeaders } = useRequireAuth();
-  const [rows, setRows]         = useState<Screen[]>([]);
+  const [rows, setRows]           = useState<Screen[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [open, setOpen]         = useState(false);
-  const [editing, setEditing]   = useState<Screen | null>(null);
-  const [form, setForm]         = useState(EMPTY);
-  const [saving, setSaving]     = useState(false);
+  const [loading, setLoading]     = useState(true);
+  const [open, setOpen]           = useState(false);
+  const [editing, setEditing]     = useState<Screen | null>(null);
+  const [form, setForm]           = useState(EMPTY);
+  const [saving, setSaving]       = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -60,24 +60,31 @@ export default function AdminScreens() {
 
   return (
     <AdminLayout>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold">Screens</h1>
-          <p className="text-muted-foreground mt-1">Manage individual TVs, kiosks, and display units.</p>
+      {/* ── Header ── */}
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold truncate">Screens</h1>
+          <p className="text-muted-foreground mt-1 text-sm hidden sm:block">Manage individual TVs, kiosks, and display units.</p>
         </div>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> Add Screen</Button>
+        <Button onClick={openNew} size="sm" className="shrink-0">
+          <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Add Screen</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
       </div>
 
+      {/* ── Content ── */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : rows.length === 0 ? (
+        <div className="bg-card border border-border rounded-2xl py-20 text-center text-muted-foreground">
+          <Tv className="w-10 h-10 mx-auto mb-4 opacity-30" />
+          <p>No screens yet. Add your first display unit.</p>
+        </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-          {rows.length === 0 ? (
-            <div className="py-20 text-center text-muted-foreground">
-              <Tv className="w-10 h-10 mx-auto mb-4 opacity-30" />
-              <p>No screens yet. Add your first display unit.</p>
-            </div>
-          ) : (
+        <>
+          {/* Desktop table — hidden on small screens */}
+          <div className="hidden md:block bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
             <table className="w-full">
               <thead className="bg-secondary/50 border-b border-border">
                 <tr>
@@ -92,7 +99,9 @@ export default function AdminScreens() {
                     <td className="px-6 py-4 font-medium">{s.name}</td>
                     <td className="px-6 py-4 font-mono text-sm text-muted-foreground">{s.code}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{s.locationName || "—"}</td>
-                    <td className="px-6 py-4 text-sm"><span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs">{s.moduleType}</span></td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs">{s.moduleType}</span>
+                    </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground capitalize">{s.orientation}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${s.isActive ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
@@ -109,12 +118,53 @@ export default function AdminScreens() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+
+          {/* Mobile card list — shown only on small screens */}
+          <div className="md:hidden space-y-3">
+            {rows.map(s => (
+              <div key={s.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                {/* Icon */}
+                <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Tv className="w-5 h-5 text-primary" />
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm truncate">{s.name}</span>
+                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${s.isActive ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
+                      {s.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">{s.code}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                    {s.locationName && (
+                      <span className="text-xs text-muted-foreground">{s.locationName}</span>
+                    )}
+                    <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{s.moduleType}</span>
+                    <span className="text-xs text-muted-foreground capitalize">{s.orientation}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="shrink-0 flex gap-1">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(s)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => remove(s.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
+      {/* ── Dialog ── */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Edit Screen" : "New Screen"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2"><Label>Screen Name</Label><Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Entrance TV 1" /></div>
