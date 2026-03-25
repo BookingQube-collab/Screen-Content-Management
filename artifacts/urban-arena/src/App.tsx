@@ -12,6 +12,7 @@ import AdminActivityForm  from "@/pages/admin/activities/form";
 import AdminSettings      from "@/pages/admin/settings";
 import AdminLocations     from "@/pages/admin/locations";
 import AdminScreens       from "@/pages/admin/screens";
+import AdminUsers         from "@/pages/admin/users";
 import NotFound           from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -40,6 +41,7 @@ function Router() {
 
       <Route path="/admin/locations" component={AdminLocations} />
       <Route path="/admin/screens"   component={AdminScreens} />
+      <Route path="/admin/users"     component={AdminUsers} />
 
       <Route path="/admin/settings" component={AdminSettings} />
 

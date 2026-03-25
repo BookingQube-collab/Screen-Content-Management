@@ -24,7 +24,7 @@ import {
   getActivityDriveStatus,
 } from "../lib/driveService";
 import { db } from "@workspace/db";
-import { driveAssetsTable, driveFoldersTable } from "@workspace/db";
+import { driveAssetsTable, driveFoldersTable, activitiesTable, locationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
@@ -39,8 +39,18 @@ router.post("/admin/drive/:activityId/setup", requireAuth, async (req, res): Pro
     return;
   }
 
-  logger.info({ activityId, activityName }, "Drive setup requested");
-  const result = await createActivityDriveFolders(activityId, activityName.trim());
+  // Auto-resolve location name from the activity's assigned location
+  let locationName: string | null = null;
+  try {
+    const [activity] = await db.select({ locationId: activitiesTable.locationId }).from(activitiesTable).where(eq(activitiesTable.id, activityId));
+    if (activity?.locationId) {
+      const [loc] = await db.select({ name: locationsTable.name }).from(locationsTable).where(eq(locationsTable.id, activity.locationId));
+      locationName = loc?.name ?? null;
+    }
+  } catch { /* non-fatal */ }
+
+  logger.info({ activityId, activityName, locationName }, "Drive setup requested");
+  const result = await createActivityDriveFolders(activityId, activityName.trim(), locationName);
   res.status(result.success ? 200 : 500).json(result);
 });
 

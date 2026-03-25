@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Film, Settings, LogOut, ActivitySquare, X, MapPin, Tv } from "lucide-react";
+import { LayoutDashboard, Film, Settings, LogOut, ActivitySquare, X, MapPin, Tv, Users } from "lucide-react";
 import { useRequireAuth } from "@/hooks/use-auth";
 
 interface AdminSidebarProps {
@@ -8,15 +8,16 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ onClose }: AdminSidebarProps) {
   const [location] = useLocation();
-  const { logout } = useRequireAuth();
+  const { logout, isSuperAdmin } = useRequireAuth();
 
   const links = [
-    { href: "/admin/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-    { href: "/admin/activities", label: "Activities",  icon: Film },
-    { href: "/admin/locations",  label: "Locations",   icon: MapPin },
-    { href: "/admin/screens",    label: "Screens",     icon: Tv },
-    { href: "/admin/settings",   label: "Settings",    icon: Settings },
-  ];
+    { href: "/admin/dashboard",  label: "Dashboard",   icon: LayoutDashboard,  always: true },
+    { href: "/admin/activities", label: "Activities",   icon: Film,             always: true },
+    { href: "/admin/locations",  label: "Locations",    icon: MapPin,           always: true },
+    { href: "/admin/screens",    label: "Screens",      icon: Tv,               always: true },
+    { href: "/admin/users",      label: "Users",        icon: Users,            always: false }, // super admin only
+    { href: "/admin/settings",   label: "Settings",     icon: Settings,         always: true },
+  ].filter(l => l.always || isSuperAdmin);
 
   return (
     <div className="w-64 bg-card border-r border-border min-h-screen flex flex-col z-20 relative shadow-2xl">

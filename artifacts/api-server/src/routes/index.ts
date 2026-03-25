@@ -1,13 +1,14 @@
 import { Router, type IRouter } from "express";
-import healthRouter    from "./health";
-import authRouter      from "./auth";
+import healthRouter     from "./health";
+import authRouter       from "./auth";
 import activitiesRouter from "./activities";
-import settingsRouter  from "./settings";
-import uploadsRouter   from "./uploads";
-import syncRouter      from "./sync";
-import locationsRouter from "./locations";
-import screensRouter   from "./screens";
-import driveRouter     from "./drive";
+import settingsRouter   from "./settings";
+import uploadsRouter    from "./uploads";
+import syncRouter       from "./sync";
+import locationsRouter  from "./locations";
+import screensRouter    from "./screens";
+import driveRouter      from "./drive";
+import adminUsersRouter from "./admin-users";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(syncRouter);
 router.use(locationsRouter);
 router.use(screensRouter);
 router.use(driveRouter);
+router.use(adminUsersRouter);
 
 export default router;

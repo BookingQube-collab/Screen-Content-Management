@@ -9,9 +9,9 @@ const router: IRouter = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "urban-arena-secret-key-change-in-prod";
 
-export function verifyToken(token: string): { id: number; email: string } | null {
+export function verifyToken(token: string): { id: number; email: string; role: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { id: number; email: string };
+    return jwt.verify(token, JWT_SECRET) as { id: number; email: string; role: string };
   } catch {
     return null;
   }
@@ -31,6 +31,17 @@ export function requireAuth(req: any, res: any, next: any): void {
   }
   req.adminUser = payload;
   next();
+}
+
+/** Only super_admin users may call this route. */
+export function requireSuperAdmin(req: any, res: any, next: any): void {
+  requireAuth(req, res, () => {
+    if (req.adminUser?.role !== "super_admin") {
+      res.status(403).json({ error: "Forbidden: super admin only" });
+      return;
+    }
+    next();
+  });
 }
 
 router.post("/auth/login", async (req, res): Promise<void> => {
@@ -54,7 +65,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+  const role = user.role ?? "super_admin";
+  const token = jwt.sign({ id: user.id, email: user.email, role }, JWT_SECRET, { expiresIn: "7d" });
 
   res.json(AdminLoginResponse.parse({ user: { id: user.id, email: user.email }, token }));
 });
@@ -64,7 +76,14 @@ router.post("/auth/logout", (_req, res): void => {
 });
 
 router.get("/auth/me", requireAuth, async (req: any, res): Promise<void> => {
-  res.json(GetAuthMeResponse.parse({ id: req.adminUser.id, email: req.adminUser.email }));
+  const [user] = await db.select().from(adminUsersTable).where(eq(adminUsersTable.id, req.adminUser.id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  res.json({
+    id: user.id,
+    email: user.email,
+    name: user.name ?? null,
+    role: user.role ?? "super_admin",
+  });
 });
 
 export default router;
