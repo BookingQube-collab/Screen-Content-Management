@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Tv } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Tv, MapPin, Filter, X } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Location { id: number; name: string; code: string; }
@@ -25,6 +25,7 @@ export default function AdminScreens() {
   const [editing, setEditing]     = useState<Screen | null>(null);
   const [form, setForm]           = useState(EMPTY);
   const [saving, setSaving]       = useState(false);
+  const [filterLocationId, setFilterLocationId] = useState<number | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -35,12 +36,17 @@ export default function AdminScreens() {
   };
 
   // Filter to screens belonging to assigned locations (super admin sees all)
-  const visibleRows = assignedLocationIds
+  const scopedRows = assignedLocationIds
     ? rows.filter(s => s.locationId !== null && assignedLocationIds.includes(s.locationId))
     : rows;
   const visibleLocations = assignedLocationIds
     ? locations.filter(l => assignedLocationIds.includes(l.id))
     : locations;
+
+  // Apply location filter on top of RBAC scoping
+  const visibleRows = filterLocationId
+    ? scopedRows.filter(s => s.locationId === filterLocationId)
+    : scopedRows;
 
   useEffect(load, []);
 
@@ -82,13 +88,48 @@ export default function AdminScreens() {
         </Button>
       </div>
 
+      {/* ── Location Filter Bar ── */}
+      {visibleLocations.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-card border border-border rounded-2xl">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mr-1">
+            <Filter className="w-4 h-4" />
+            <span className="font-medium">Filter:</span>
+          </div>
+          <SearchableSelect
+            variant="filter"
+            icon={<MapPin className="w-4 h-4 text-pink-400" />}
+            options={visibleLocations.map(l => ({ value: l.id, label: l.name }))}
+            value={filterLocationId}
+            onChange={v => setFilterLocationId(v !== null ? Number(v) : null)}
+            placeholder="All locations"
+            clearLabel="All locations"
+          />
+          {filterLocationId !== null && (
+            <>
+              <button
+                onClick={() => setFilterLocationId(null)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+              <div className="ml-auto text-sm text-muted-foreground">
+                Showing <span className="font-semibold text-foreground mx-1">{visibleRows.length}</span> of {scopedRows.length}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── Content ── */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
       ) : visibleRows.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl py-20 text-center text-muted-foreground">
           <Tv className="w-10 h-10 mx-auto mb-4 opacity-30" />
-          <p>No screens yet. Add your first display unit.</p>
+          <p>{filterLocationId ? "No screens match this location filter." : "No screens yet. Add your first display unit."}</p>
+          {filterLocationId && (
+            <button onClick={() => setFilterLocationId(null)} className="mt-3 text-primary text-sm underline">Clear filter</button>
+          )}
         </div>
       ) : (
         <>
