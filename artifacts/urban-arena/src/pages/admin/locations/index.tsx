@@ -13,7 +13,7 @@ interface Location { id: number; name: string; code: string; address?: string | 
 const EMPTY: Omit<Location, "id"> = { name: "", code: "", address: "", logoUrl: "", isActive: true };
 
 export default function AdminLocations() {
-  const { authHeaders } = useRequireAuth();
+  const { authHeaders, assignedLocationIds } = useRequireAuth();
   const [rows, setRows]           = useState<Location[]>([]);
   const [loading, setLoading]     = useState(true);
   const [open, setOpen]           = useState(false);
@@ -81,6 +81,11 @@ export default function AdminLocations() {
     load();
   };
 
+  // Filter to only the user's assigned locations (super admin sees all)
+  const visibleRows = assignedLocationIds
+    ? rows.filter(r => assignedLocationIds.includes(r.id))
+    : rows;
+
   return (
     <AdminLayout>
       {/* ── Header ── */}
@@ -99,7 +104,7 @@ export default function AdminLocations() {
       {/* ── Content ── */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : rows.length === 0 ? (
+      ) : visibleRows.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl py-20 text-center text-muted-foreground">
           <MapPin className="w-10 h-10 mx-auto mb-4 opacity-30" />
           <p>No locations yet. Add your first venue.</p>
@@ -120,7 +125,7 @@ export default function AdminLocations() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {rows.map(l => (
+                {visibleRows.map(l => (
                   <tr key={l.id} className="hover:bg-secondary/30 transition-colors">
                     <td className="px-6 py-4 font-medium">{l.name}</td>
                     <td className="px-6 py-4 font-mono text-sm text-muted-foreground">{l.code}</td>
@@ -150,7 +155,7 @@ export default function AdminLocations() {
 
           {/* Mobile card list — shown only on small screens */}
           <div className="md:hidden space-y-3">
-            {rows.map(l => (
+            {visibleRows.map(l => (
               <div key={l.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
                 {/* Logo or icon */}
                 <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">

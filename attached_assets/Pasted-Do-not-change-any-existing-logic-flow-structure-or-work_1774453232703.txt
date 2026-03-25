@@ -1,0 +1,35 @@
+Do not change any existing logic, flow, structure, or working modules. Keep the current implementation exactly as it is, and only make the following updates:
+
+1. User Table and Location Mapping
+- Add location selection in the user creation and user edit form.
+- A normal user/admin can be assigned one or multiple locations.
+- Store selected locations for non-super-admin users in the user table or related mapping structure, based on the current database design.
+
+2. Super Admin Logic
+- For Super Admin, do not store any specific location.
+- Super Admin should automatically have access to all locations.
+- While creating or editing a Super Admin, location selection should not be required.
+
+3. Multiple Location Selection
+- While creating a new user, allow selecting multiple locations.
+- While editing a user, previously assigned locations should be visible and editable.
+- After login, the user should only see the locations assigned to them.
+- All dashboards, screens, modules, and related data should load only for the assigned locations.
+- Super Admin should continue to see all locations and all related data.
+
+4. Existing Admin Users Listing Issue
+- Previously created admin users are currently not showing in the user listing.
+- Fix this issue without changing existing business logic.
+- Make sure all previously created users, including admin users, appear properly in the listing.
+
+5. Edit User Functionality
+- Existing users shown in the listing should be editable.
+- Admin users that were already created should also be editable.
+- The edit form should allow updating user details, role, email, password if applicable, and assigned locations.
+
+Important:
+- Do not remove or break any current functionality.
+- Do not modify existing login logic except where required to support location-based visibility.
+- Do not change the current role logic except for adding the location handling rules above.
+- Keep backward compatibility with existing users and existing data.
+- Apply only the minimum required changes to support this enhancement.
