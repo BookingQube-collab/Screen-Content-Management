@@ -3,8 +3,11 @@ import { useLocation } from "wouter";
 
 const TOKEN_KEY = "urban_arena_admin_token";
 
-/** Decode JWT payload without verification (client-side only). */
-function decodeJwtPayload(token: string): { id: number; email: string; role: string } | null {
+/**
+ * Decode JWT payload without verification (client-side only).
+ * Returns null on any parse failure.
+ */
+function decodeJwtPayload(token: string): { id: number; email: string; role?: string } | null {
   try {
     const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
     const json = atob(base64);
@@ -28,8 +31,11 @@ export function useAuthToken() {
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-  // Decode role from JWT payload (no server round-trip needed)
-  const role: string = token ? (decodeJwtPayload(token)?.role ?? "user") : "user";
+  // Decode role from JWT payload.
+  // Old tokens (issued before role was added) have no role field — default to
+  // super_admin so existing admins keep full access until they re-login.
+  const decoded = token ? decodeJwtPayload(token) : null;
+  const role: string = decoded?.role ?? "super_admin";
   const isSuperAdmin = role === "super_admin";
 
   return { token, setToken: saveToken, authHeaders, role, isSuperAdmin };
