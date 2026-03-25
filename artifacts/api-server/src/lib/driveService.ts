@@ -552,3 +552,87 @@ export async function getActivityDriveStatus(activityId: number) {
 
   return { folderRecord: folderRecord ?? null, assets, counts };
 }
+
+/**
+ * validateDriveConnection — tests whether the service account can access the
+ * configured parent folder. Use this from the Settings page before running a sync.
+ *
+ * Returns an object with:
+ *   ok        — true if fully operational
+ *   steps     — array of { label, ok, message } for each check
+ *   folderName — name of the parent folder (when accessible)
+ */
+export async function validateDriveConnection(): Promise<{
+  ok: boolean;
+  steps: Array<{ label: string; ok: boolean; message: string }>;
+  folderName?: string;
+}> {
+  const steps: Array<{ label: string; ok: boolean; message: string }> = [];
+
+  // ── Step 1: service account key ───────────────────────────────────────────
+  let drive: drive_v3.Drive;
+  try {
+    drive = await getDriveClient();
+    steps.push({ label: "Service account key", ok: true, message: "Parsed and authenticated." });
+  } catch (err: any) {
+    steps.push({ label: "Service account key", ok: false, message: err.message });
+    return { ok: false, steps };
+  }
+
+  // ── Step 2: parent folder ID set ──────────────────────────────────────────
+  let parentFolderId: string;
+  try {
+    parentFolderId = await getParentFolderId();
+    steps.push({ label: "Parent Folder ID configured", ok: true, message: parentFolderId });
+  } catch (err: any) {
+    steps.push({ label: "Parent Folder ID configured", ok: false, message: err.message });
+    return { ok: false, steps };
+  }
+
+  // ── Step 3: service account can ACCESS the parent folder ──────────────────
+  let folderName: string | undefined;
+  try {
+    const res = await drive.files.get({
+      fileId: parentFolderId,
+      fields: "id, name, mimeType",
+    });
+    if (res.data.mimeType !== "application/vnd.google-apps.folder") {
+      steps.push({
+        label: "Parent folder accessible",
+        ok: false,
+        message: `ID "${parentFolderId}" exists but is not a folder (it is: ${res.data.mimeType}).`,
+      });
+      return { ok: false, steps };
+    }
+    folderName = res.data.name ?? undefined;
+    steps.push({
+      label: "Parent folder accessible",
+      ok: true,
+      message: `Found folder "${folderName}" — service account has access.`,
+    });
+  } catch (err: any) {
+    const hint =
+      err.message?.includes("notFound") || err.message?.includes("404") || err.message?.includes("File not found")
+        ? `The service account cannot access this folder. Either the ID is wrong OR ` +
+          `you haven't shared it with the service account. ` +
+          `In Google Drive, right-click the folder → Share → add the service account email with Editor access.`
+        : err.message;
+    steps.push({ label: "Parent folder accessible", ok: false, message: hint });
+    return { ok: false, steps };
+  }
+
+  // ── Step 4: service account can LIST children inside the parent folder ─────
+  try {
+    await drive.files.list({
+      q: `'${parentFolderId}' in parents and trashed=false`,
+      fields: "files(id, name)",
+      pageSize: 1,
+    });
+    steps.push({ label: "Can list folder contents", ok: true, message: "Listing children works." });
+  } catch (err: any) {
+    steps.push({ label: "Can list folder contents", ok: false, message: err.message });
+    return { ok: false, steps, folderName };
+  }
+
+  return { ok: true, steps, folderName };
+}

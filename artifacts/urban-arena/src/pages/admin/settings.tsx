@@ -502,10 +502,15 @@ function DriveSetupGuide() {
 
 // ── Google Drive Credentials Component ────────────────────────────────────────
 
+type TestStep = { label: string; ok: boolean; message: string };
+type TestResult = { ok: boolean; steps: TestStep[]; folderName?: string };
+
 function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, string> }) {
   const [keyJson, setKeyJson] = useState("");
   const [parentId, setParentId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -530,6 +535,7 @@ function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, stri
   const save = async () => {
     setSaving(true);
     setMsg(null);
+    setTestResult(null);
     try {
       await fetch("/api/settings", {
         method: "POST",
@@ -546,6 +552,20 @@ function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, stri
       setMsg({ ok: false, text: "Failed to save credentials." });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/drive/validate", { headers: authHeaders });
+      const data: TestResult = await res.json();
+      setTestResult(data);
+    } catch {
+      setTestResult({ ok: false, steps: [{ label: "Network", ok: false, message: "Could not reach the API." }] });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -602,14 +622,49 @@ function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, stri
         </p>
       </div>
 
+      {testResult && (
+        <div className={`rounded-lg border p-3 space-y-2 ${testResult.ok ? "border-green-500/40 bg-green-500/10" : "border-red-500/40 bg-red-500/10"}`}>
+          <p className={`text-xs font-semibold ${testResult.ok ? "text-green-400" : "text-red-400"}`}>
+            {testResult.ok ? `✓ Drive connection is working — folder: "${testResult.folderName}"` : "✗ Drive connection failed"}
+          </p>
+          {testResult.steps.map((step, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className={`text-xs mt-0.5 ${step.ok ? "text-green-400" : "text-red-400"}`}>{step.ok ? "✓" : "✗"}</span>
+              <div>
+                <p className="text-xs font-medium text-foreground">{step.label}</p>
+                <p className="text-xs text-muted-foreground break-all">{step.message}</p>
+              </div>
+            </div>
+          ))}
+          {!testResult.ok && testResult.steps.some(s => s.label === "Parent folder accessible" && !s.ok) && (
+            <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs text-yellow-300 space-y-1">
+              <p className="font-semibold">How to fix the sharing issue:</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>Open Google Drive and find your E3 (parent) folder</li>
+                <li>Right-click it → <strong>Share</strong></li>
+                <li>Add: <span className="font-mono bg-black/30 px-1 rounded">{clientEmail || "service account email"}</span></li>
+                <li>Set permission to <strong>Editor</strong> and click Send</li>
+                <li>Come back here and click <strong>Test Connection</strong> again</li>
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
+
       {msg && (
         <p className={`text-sm font-medium ${msg.ok ? "text-green-400" : "text-red-400"}`}>{msg.text}</p>
       )}
 
-      <Button onClick={save} disabled={saving} size="sm">
-        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-        Save Drive Credentials
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={testConnection} disabled={testing || saving} size="sm" variant="outline">
+          {testing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+          Test Connection
+        </Button>
+        <Button onClick={save} disabled={saving || testing} size="sm">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+          Save Drive Credentials
+        </Button>
+      </div>
     </div>
   );
 }
