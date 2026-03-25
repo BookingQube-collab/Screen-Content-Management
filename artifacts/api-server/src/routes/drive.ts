@@ -39,18 +39,20 @@ router.post("/admin/drive/:activityId/setup", requireAuth, async (req, res): Pro
     return;
   }
 
-  // Auto-resolve location name from the activity's assigned location
+  // Auto-resolve location name + address from the activity's assigned location
   let locationName: string | null = null;
+  let locationAddress: string | null = null;
   try {
     const [activity] = await db.select({ locationId: activitiesTable.locationId }).from(activitiesTable).where(eq(activitiesTable.id, activityId));
     if (activity?.locationId) {
-      const [loc] = await db.select({ name: locationsTable.name }).from(locationsTable).where(eq(locationsTable.id, activity.locationId));
+      const [loc] = await db.select({ name: locationsTable.name, address: locationsTable.address }).from(locationsTable).where(eq(locationsTable.id, activity.locationId));
       locationName = loc?.name ?? null;
+      locationAddress = loc?.address ?? null;
     }
   } catch { /* non-fatal */ }
 
-  logger.info({ activityId, activityName, locationName }, "Drive setup requested");
-  const result = await createActivityDriveFolders(activityId, activityName.trim(), locationName);
+  logger.info({ activityId, activityName, locationName, locationAddress }, "Drive setup requested");
+  const result = await createActivityDriveFolders(activityId, activityName.trim(), locationName, locationAddress);
   res.status(result.success ? 200 : 500).json(result);
 });
 

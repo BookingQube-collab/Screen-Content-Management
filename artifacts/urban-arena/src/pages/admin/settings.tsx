@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Upload, X, ImageIcon, HardDrive } from "lucide-react";
+import { Save, Loader2, Upload, X, ImageIcon, HardDrive, ChevronDown, ChevronUp, BookOpen, AlertTriangle, CheckCircle2, Folder } from "lucide-react";
 
 export default function AdminSettings() {
   const { settings, isLoading, updateSetting } = useAppSettings();
@@ -247,6 +247,9 @@ export default function AdminSettings() {
         {/* ── Google Drive Credentials ─────────────────────────────────── */}
         <GoogleDriveSettings authHeaders={authHeaders} />
 
+        {/* ── Google Drive Setup Guide ─────────────────────────────────── */}
+        <DriveSetupGuide />
+
         {/* Carousel Mechanics */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
           <h2 className="text-xl font-semibold border-b border-border pb-4">Carousel Behavior</h2>
@@ -301,6 +304,199 @@ export default function AdminSettings() {
 
       </div>
     </AdminLayout>
+  );
+}
+
+// ── Google Drive Setup Guide Component ────────────────────────────────────────
+
+function DriveSetupGuide() {
+  const [open, setOpen] = useState(false);
+
+  const steps = [
+    {
+      title: "Create a Google Cloud Project",
+      body: (
+        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+          <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">console.cloud.google.com</a></li>
+          <li>Click <strong className="text-foreground">Select Project</strong> → <strong className="text-foreground">New Project</strong></li>
+          <li>Enter a name (e.g. <code className="text-xs bg-secondary px-1 py-0.5 rounded">BookingQube</code>) and click <strong className="text-foreground">Create</strong></li>
+        </ol>
+      ),
+    },
+    {
+      title: "Enable the Google Drive API",
+      body: (
+        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+          <li>Inside your project, go to <strong className="text-foreground">APIs & Services → Library</strong></li>
+          <li>Search for <strong className="text-foreground">Google Drive API</strong></li>
+          <li>Click <strong className="text-foreground">Enable</strong></li>
+        </ol>
+      ),
+    },
+    {
+      title: "Create a Service Account",
+      body: (
+        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+          <li>Go to <strong className="text-foreground">APIs & Services → Credentials</strong></li>
+          <li>Click <strong className="text-foreground">Create Credentials → Service Account</strong></li>
+          <li>Enter name: <code className="text-xs bg-secondary px-1 py-0.5 rounded">drive-sync-service</code> and click <strong className="text-foreground">Create and Continue</strong></li>
+          <li>Skip roles (or grant Viewer if needed), then click <strong className="text-foreground">Done</strong></li>
+        </ol>
+      ),
+    },
+    {
+      title: "Generate a JSON Key — download it",
+      body: (
+        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+          <li>Click on your service account</li>
+          <li>Go to the <strong className="text-foreground">Keys</strong> tab</li>
+          <li>Click <strong className="text-foreground">Add Key → Create New Key</strong></li>
+          <li>Select <strong className="text-foreground">JSON</strong> and download the file</li>
+        </ol>
+      ),
+    },
+    {
+      title: "Copy the Required Data from the JSON File",
+      body: (
+        <>
+          <p className="text-sm text-muted-foreground mb-2">Open the downloaded file — it will look like this:</p>
+          <pre className="text-xs bg-secondary/60 border border-border rounded-lg p-3 overflow-x-auto text-muted-foreground font-mono leading-relaxed">{`{
+  "type": "service_account",
+  "project_id": "bookingqube",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n",
+  "client_email": "drive-sync-service@bookingqube.iam.gserviceaccount.com",
+  ...
+}`}</pre>
+          <p className="text-sm text-muted-foreground mt-2">You will need: <strong className="text-foreground">the full JSON</strong> (to paste below) and the <strong className="text-foreground">client_email</strong> (for the next step).</p>
+        </>
+      ),
+    },
+    {
+      title: "Share Your Drive Folder with the Service Account — CRITICAL",
+      body: (
+        <>
+          <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-3">
+            <AlertTriangle className="w-4 h-4 text-yellow-400 flex-none mt-0.5" />
+            <p className="text-xs text-yellow-300">If this step is skipped, sync will fail with an Access Denied error.</p>
+          </div>
+          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+            <li>Open Google Drive and navigate to your parent (root) folder</li>
+            <li>Right-click the folder → <strong className="text-foreground">Share</strong></li>
+            <li>Paste the <code className="text-xs bg-secondary px-1 py-0.5 rounded">client_email</code> from your JSON key</li>
+            <li>Set permission to <strong className="text-foreground">Editor</strong> and click <strong className="text-foreground">Send</strong></li>
+          </ol>
+        </>
+      ),
+    },
+    {
+      title: "Paste the JSON Key in Settings Above",
+      body: (
+        <p className="text-sm text-muted-foreground">
+          Paste the full contents of the downloaded JSON file into the <strong className="text-foreground">Service Account Key (JSON)</strong> field above, then enter your <strong className="text-foreground">Parent Folder ID</strong> (the long ID in the Drive URL), and click <strong className="text-foreground">Save Drive Credentials</strong>.
+        </p>
+      ),
+    },
+    {
+      title: "Test the Sync",
+      body: (
+        <>
+          <p className="text-sm text-muted-foreground mb-2">Go to <strong className="text-foreground">Activities</strong>, click <strong className="text-foreground">Setup</strong> on an activity, then <strong className="text-foreground">Sync</strong>. It should:</p>
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            {["Access Drive with the service account", "Find or create the required folder hierarchy", "Fetch files and store them in the database", "Update the activity's media URLs automatically"].map(item => (
+              <li key={item} className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-none mt-0.5" />{item}</li>
+            ))}
+          </ul>
+        </>
+      ),
+    },
+  ];
+
+  const commonMistakes = [
+    "Forgot to share the Drive folder → access denied",
+    "Wrong GCP project selected → API not enabled",
+    "JSON pasted incomplete or with extra whitespace → authentication fails",
+    "Parent Folder ID is wrong → sync creates folders in Drive root instead",
+    "Service account has Viewer role only → cannot create folders",
+  ];
+
+  const folderStructure = `E3 (Root folder — configured Parent Folder ID)/
+  Doha Mall (Location — from location.address)/
+    Urban Arena (Event — from location.name)/
+      Kids Tribe (Activity name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+      Ping Pong (Activity name)/
+        poster/  video/  thumbnail/  logo/
+  City Center (Location — address)/
+    Inflatapark (Event — location name)/
+      Entrance TV/
+        poster/  video/  thumbnail/  logo/
+      Exit TV/
+        poster/  video/  thumbnail/  logo/`;
+
+  return (
+    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-3 p-6 hover:bg-secondary/30 transition-colors text-left"
+      >
+        <BookOpen className="w-5 h-5 text-primary flex-none" />
+        <div className="flex-1">
+          <h2 className="text-xl font-semibold">Google Drive Setup Guide</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Step-by-step instructions for connecting your Google Drive account</p>
+        </div>
+        {open ? <ChevronUp className="w-5 h-5 text-muted-foreground flex-none" /> : <ChevronDown className="w-5 h-5 text-muted-foreground flex-none" />}
+      </button>
+
+      {open && (
+        <div className="px-6 pb-6 space-y-6 border-t border-border pt-6">
+          {/* Numbered steps */}
+          <div className="space-y-4">
+            {steps.map((step, i) => (
+              <div key={i} className="flex gap-4">
+                <div className="flex-none w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold mt-0.5">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm mb-1.5">{step.title}</p>
+                  {step.body}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Folder structure */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4 text-violet-400" />
+              <p className="font-semibold text-sm">Expected Drive Folder Structure</p>
+            </div>
+            <pre className="text-xs bg-secondary/60 border border-border rounded-lg p-4 overflow-x-auto text-muted-foreground font-mono leading-relaxed whitespace-pre">{folderStructure}</pre>
+            <p className="text-xs text-muted-foreground">
+              The system creates this hierarchy automatically. <strong className="text-foreground">Location address</strong> = physical venue (optional). <strong className="text-foreground">Location name</strong> = event/brand name. <strong className="text-foreground">Activity name</strong> = individual experience.
+            </p>
+          </div>
+
+          {/* Common mistakes */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-400" />
+              <p className="font-semibold text-sm">Common Mistakes to Avoid</p>
+            </div>
+            <ul className="space-y-1.5">
+              {commonMistakes.map((m, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-yellow-400 font-bold flex-none mt-0.5">→</span>{m}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
