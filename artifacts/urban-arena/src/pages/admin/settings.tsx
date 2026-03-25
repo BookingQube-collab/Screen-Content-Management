@@ -576,15 +576,29 @@ function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, stri
       </div>
 
       <div className="space-y-2">
-        <Label>Parent Folder ID <span className="text-muted-foreground font-normal">(optional)</span></Label>
+        <Label className="flex items-center gap-1.5">
+          Parent Folder ID
+          <span className="text-red-400 font-semibold text-xs">REQUIRED</span>
+        </Label>
+        {loaded && !parentId.trim() && (
+          <div className="flex items-start gap-2 rounded-lg border border-red-500/50 bg-red-500/10 p-3">
+            <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+            <div className="text-xs text-red-300 space-y-1">
+              <p className="font-semibold text-red-400">Drive sync is broken — Parent Folder ID is missing!</p>
+              <p>Without this, the service account creates folders in its own private Drive (invisible to you). All "City Center" and similar folders will be inaccessible.</p>
+              <p>Open your target Drive folder in a browser and copy the ID from the URL: <span className="font-mono bg-red-950/50 px-1 rounded">drive.google.com/drive/folders/<strong>PASTE_THIS_PART</strong></span></p>
+            </div>
+          </div>
+        )}
         <Input
-          className="font-mono text-sm"
-          placeholder="Leave blank to use Drive root"
+          className={`font-mono text-sm ${loaded && !parentId.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+          placeholder="e.g. 1jgr_opvv6En580oGMxfY3UE-zkAtLZFX7dmr"
           value={parentId}
-          onChange={e => setParentId(e.target.value)}
+          onChange={e => setParentId(e.target.value.trim())}
         />
         <p className="text-xs text-muted-foreground">
-          Copy the folder ID from the Drive URL: drive.google.com/drive/folders/<strong>FOLDER_ID</strong>
+          Copy the folder ID from the Drive URL: drive.google.com/drive/folders/<strong>FOLDER_ID</strong>.
+          Share this folder with the service account email above.
         </p>
       </div>
 
