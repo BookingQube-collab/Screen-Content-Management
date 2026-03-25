@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useRequireAuth } from "@/hooks/use-auth";
@@ -128,6 +128,22 @@ export default function AdminActivityForm() {
 
   const isSaving = isCreating || isUpdating;
 
+  // ── Derived Drive-change flags ──────────────────────────────────────────────
+  const nameChanged = isEdit && driveIsSetup && !!originalName && formData.name !== originalName;
+  const changedMediaTypes = isEdit && driveIsSetup ? (() => {
+    const types: string[] = [];
+    if (formData.heroVideoUrl !== originalMedia.heroVideoUrl) types.push("Video");
+    if (formData.cardImageUrl  !== originalMedia.cardImageUrl)  types.push("Poster/Card");
+    if (formData.logoUrl       !== originalMedia.logoUrl)       types.push("Logo");
+    if (JSON.stringify(formData.heroGalleryUrls) !== JSON.stringify(originalMedia.heroGalleryUrls)) types.push("Gallery");
+    return types;
+  })() : [];
+  const hasDriveChanges = nameChanged || changedMediaTypes.length > 0;
+
+  // After a successful save with Drive changes pending, stay on page
+  const [savedWithDriveChanges, setSavedWithDriveChanges] = useState(false);
+  const drivePanelRef = useRef<HTMLDivElement>(null);
+
   // Auto-generate slug from name if slug is empty
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -153,7 +169,14 @@ export default function AdminActivityForm() {
         await createAct({ data: submitData });
       }
       queryClient.invalidateQueries({ queryKey: getListActivitiesQueryKey() });
-      setLocation("/admin/activities");
+
+      // If Drive is set up and something changed, stay on page and highlight the Drive panel
+      if (hasDriveChanges) {
+        setSavedWithDriveChanges(true);
+        setTimeout(() => drivePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      } else {
+        setLocation("/admin/activities");
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to save activity");
@@ -187,7 +210,17 @@ export default function AdminActivityForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Name</Label>
-                <Input required value={formData.name} onChange={handleNameChange} placeholder="e.g. VR Racing" />
+                <Input required value={formData.name} onChange={handleNameChange} placeholder="e.g. VR Racing"
+                  className={nameChanged ? "border-yellow-500/60 focus-visible:ring-yellow-500/40" : ""} />
+                {nameChanged && (
+                  <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2.5 mt-1">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400 flex-none mt-0.5" />
+                    <p className="text-xs text-yellow-300 leading-relaxed">
+                      Name changed from <em className="font-semibold not-italic text-yellow-200">"{originalName}"</em>.
+                      After saving, re-run <strong>Setup Drive Folders</strong> below so the Drive folder is renamed too.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Slug (URL friendly)</Label>
@@ -317,6 +350,19 @@ export default function AdminActivityForm() {
                  onChange={(url) => setFormData({...formData, logoUrl: url})}
                />
              </div>
+
+             {/* Drive media-change notice */}
+             {changedMediaTypes.length > 0 && (
+               <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-2">
+                 <Info className="w-4 h-4 text-blue-400 flex-none mt-0.5" />
+                 <p className="text-xs text-blue-300 leading-relaxed">
+                   <strong>Drive sync needed</strong> — you changed:{" "}
+                   <span className="font-semibold text-blue-200">{changedMediaTypes.join(", ")}</span>.{" "}
+                   After saving, upload the same files to the matching Google Drive subfolder
+                   <em> or</em> run <strong>Sync from Drive</strong> in the Drive panel below.
+                 </p>
+               </div>
+             )}
           </div>
         </div>
 
@@ -370,8 +416,17 @@ export default function AdminActivityForm() {
 
       {/* ── Google Drive Sync Panel — edit mode only ────────────────────────── */}
       {isEdit && (
-        <div className="mt-8">
-          <DriveSyncPanel activityId={id} activityName={formData.name} authHeaders={authHeaders} />
+        <div className="mt-8" ref={drivePanelRef}>
+          <DriveSyncPanel
+            activityId={id}
+            activityName={formData.name}
+            authHeaders={authHeaders}
+            onSetupDetected={setDriveIsSetup}
+            nameChanged={nameChanged}
+            changedMediaTypes={changedMediaTypes}
+            savedWithDriveChanges={savedWithDriveChanges}
+            onContinue={() => setLocation("/admin/activities")}
+          />
         </div>
       )}
     </AdminLayout>
@@ -396,10 +451,20 @@ function DriveSyncPanel({
   activityId,
   activityName,
   authHeaders,
+  onSetupDetected,
+  nameChanged,
+  changedMediaTypes,
+  savedWithDriveChanges,
+  onContinue,
 }: {
   activityId: number;
   activityName: string;
   authHeaders: Record<string, string>;
+  onSetupDetected?: (isSetup: boolean) => void;
+  nameChanged?: boolean;
+  changedMediaTypes?: string[];
+  savedWithDriveChanges?: boolean;
+  onContinue?: () => void;
 }) {
   const [status, setStatus] = useState<DriveStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -411,7 +476,10 @@ function DriveSyncPanel({
     setLoadingStatus(true);
     fetch(`/api/admin/drive/${activityId}/status`, { headers: authHeaders })
       .then(r => r.json())
-      .then(setStatus)
+      .then(data => {
+        setStatus(data);
+        onSetupDetected?.(!!data?.folderRecord?.activityFolderId);
+      })
       .catch(() => setStatus(null))
       .finally(() => setLoadingStatus(false));
   };
@@ -468,7 +536,7 @@ function DriveSyncPanel({
     : "Never";
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-5">
+    <div className={`bg-card border rounded-2xl p-6 shadow-sm space-y-5 transition-colors ${savedWithDriveChanges ? "border-amber-500/50 shadow-amber-500/10 shadow-lg" : "border-border"}`}>
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div className="flex items-center gap-2">
           <HardDrive className="w-5 h-5 text-primary" />
@@ -485,6 +553,35 @@ function DriveSyncPanel({
           </a>
         )}
       </div>
+
+      {/* ── Post-save Drive action banners ─────────────────────────────────── */}
+      {savedWithDriveChanges && (
+        <div className="space-y-3">
+          <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/40 rounded-xl p-4">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-none mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-semibold text-amber-300">Saved — Google Drive action needed</p>
+              {nameChanged && (
+                <p className="text-xs text-amber-200/80">
+                  <strong>Folder rename:</strong> Click <em>Re-setup Folders</em> below — this creates a new Drive folder
+                  matching the new activity name.
+                </p>
+              )}
+              {(changedMediaTypes?.length ?? 0) > 0 && (
+                <p className="text-xs text-amber-200/80">
+                  <strong>Media changed ({changedMediaTypes!.join(", ")}):</strong> Upload the updated files to the
+                  matching Drive subfolder <em>or</em> use <em>Sync from Drive</em> below.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={onContinue}>
+              Done — go back to Activities
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loadingStatus ? (
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
