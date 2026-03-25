@@ -168,17 +168,27 @@ export async function ensureAllLocationFolders(): Promise<{
 
     for (const loc of locations) {
       try {
+        let addressFolderId: string | null = null;
         let eventParentId: string | null = parentFolderId;
 
         if (loc.address?.trim()) {
-          const addrFolderId = await ensureFolder(drive, loc.address.trim(), parentFolderId);
-          eventParentId = addrFolderId;
+          addressFolderId = await ensureFolder(drive, loc.address.trim(), parentFolderId);
+          eventParentId = addressFolderId;
         }
 
-        await ensureFolder(drive, loc.name, eventParentId);
+        const locationFolderId = await ensureFolder(drive, loc.name, eventParentId);
 
         resultList.push({ locationId: loc.id, locationName: loc.name, ok: true, message: "OK" });
-        logger.info({ locationId: loc.id, locationName: loc.name }, "Location Drive folders ensured");
+        logger.info(
+          {
+            locationId: loc.id,
+            locationName: loc.name,
+            locationAddress: loc.address ?? null,
+            addressFolderUrl: addressFolderId ? `https://drive.google.com/drive/folders/${addressFolderId}` : null,
+            locationFolderUrl: `https://drive.google.com/drive/folders/${locationFolderId}`,
+          },
+          "Location Drive folders ensured",
+        );
       } catch (err: any) {
         resultList.push({ locationId: loc.id, locationName: loc.name, ok: false, message: err.message });
         logger.error({ err: err.message, locationId: loc.id }, "Location Drive folder creation failed");
@@ -287,10 +297,30 @@ export async function createActivityDriveFolders(
       });
 
     logger.info(
-      { activityId, actFolderId, locationName, locationAddress },
+      {
+        activityId,
+        locationAddress,
+        venueFolderId,
+        locationName,
+        eventFolderId,
+        activityName,
+        actFolderId,
+        venueUrl: venueFolderId ? `https://drive.google.com/drive/folders/${venueFolderId}` : null,
+        eventUrl: eventFolderId ? `https://drive.google.com/drive/folders/${eventFolderId}` : null,
+        activityUrl: `https://drive.google.com/drive/folders/${actFolderId}`,
+      },
       "Drive folders created/verified",
     );
-    return { success: true, message: "Drive folders ready", folderId: actFolderId };
+    return {
+      success: true,
+      message: "Drive folders ready",
+      folderId: actFolderId,
+      venueFolderId,
+      eventFolderId,
+      venueUrl: venueFolderId ? `https://drive.google.com/drive/folders/${venueFolderId}` : null,
+      eventUrl: eventFolderId ? `https://drive.google.com/drive/folders/${eventFolderId}` : null,
+      activityUrl: `https://drive.google.com/drive/folders/${actFolderId}`,
+    };
   } catch (err: any) {
     logger.error({ err: err.message, activityId }, "Drive folder creation failed");
     return { success: false, message: err.message };
