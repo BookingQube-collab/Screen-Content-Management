@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Loader2, Tv } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Location { id: number; name: string; code: string; }
 interface Screen   { id: number; name: string; code: string; locationId: number | null; locationName?: string | null; moduleType: string; orientation: string; isActive: boolean; notes?: string | null; }
@@ -179,10 +180,12 @@ export default function AdminScreens() {
             <div className="space-y-2"><Label>Code</Label><Input required value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. TV-ENT-01" /></div>
             <div className="space-y-2">
               <Label>Location</Label>
-              <select className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm" value={form.locationId ?? ""} onChange={e => setForm(f => ({ ...f, locationId: e.target.value ? parseInt(e.target.value) : null }))}>
-                <option value="">— No location —</option>
-                {visibleLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
+              <SearchableSelect
+                options={visibleLocations.map(l => ({ value: l.id, label: l.name }))}
+                value={form.locationId ?? null}
+                onChange={v => setForm(f => ({ ...f, locationId: v !== null ? Number(v) : null }))}
+                placeholder="— No location —"
+              />
             </div>
             <div className="space-y-2">
               <Label>Module Type</Label>

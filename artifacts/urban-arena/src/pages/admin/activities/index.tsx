@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Edit2, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Video, MapPin, Tv, Filter, RefreshCw, CheckCircle2, XCircle, FolderOpen } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ApiLocation { id: number; name: string; code: string; }
@@ -206,34 +207,29 @@ export default function AdminActivities() {
         </div>
 
         {/* Location filter */}
-        <div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-xl px-3 py-2 min-w-[180px]">
-          <MapPin className="w-4 h-4 text-pink-400 flex-none" />
-          <select
-            className="bg-transparent text-sm outline-none flex-1 text-foreground"
-            value={filterLocationId ?? ""}
-            onChange={e => {
-              const id = e.target.value ? parseInt(e.target.value) : null;
-              setFilterLocationId(id);
-              setFilterScreenId(null);
-            }}
-          >
-            <option value="">All locations</option>
-            {visibleLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        </div>
+        <SearchableSelect
+          variant="filter"
+          icon={<MapPin className="w-4 h-4 text-pink-400" />}
+          options={visibleLocations.map(l => ({ value: l.id, label: l.name }))}
+          value={filterLocationId}
+          onChange={v => {
+            setFilterLocationId(v !== null ? Number(v) : null);
+            setFilterScreenId(null);
+          }}
+          placeholder="All locations"
+          clearLabel="All locations"
+        />
 
         {/* Screen filter */}
-        <div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-xl px-3 py-2 min-w-[180px]">
-          <Tv className="w-4 h-4 text-violet-400 flex-none" />
-          <select
-            className="bg-transparent text-sm outline-none flex-1 text-foreground"
-            value={filterScreenId ?? ""}
-            onChange={e => setFilterScreenId(e.target.value ? parseInt(e.target.value) : null)}
-          >
-            <option value="">All screens</option>
-            {filteredScreenOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
+        <SearchableSelect
+          variant="filter"
+          icon={<Tv className="w-4 h-4 text-violet-400" />}
+          options={filteredScreenOptions.map(s => ({ value: s.id, label: s.name }))}
+          value={filterScreenId}
+          onChange={v => setFilterScreenId(v !== null ? Number(v) : null)}
+          placeholder="All screens"
+          clearLabel="All screens"
+        />
 
         {hasFilters && (
           <Button
