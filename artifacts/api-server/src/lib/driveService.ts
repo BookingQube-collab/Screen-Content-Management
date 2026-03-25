@@ -145,6 +145,54 @@ async function ensureFolder(
 // ── Public service functions ───────────────────────────────────────────────────
 
 /**
+ * ensureAllLocationFolders — ensures the top-two levels of the Drive hierarchy
+ * exist for EVERY location, regardless of whether they have activities.
+ *
+ *   WITH address:  Root → <address> → <locationName>
+ *   WITHOUT address: Root → <locationName>
+ *
+ * Idempotent — safe to call before every bulk sync.
+ */
+export async function ensureAllLocationFolders(): Promise<{
+  success: boolean;
+  results: Array<{ locationId: number; locationName: string; ok: boolean; message: string }>;
+}> {
+  const resultList: Array<{ locationId: number; locationName: string; ok: boolean; message: string }> = [];
+  try {
+    const drive = await getDriveClient();
+    const parentFolderId = await getParentFolderId();
+
+    const locations = await db
+      .select({ id: locationsTable.id, name: locationsTable.name, address: locationsTable.address })
+      .from(locationsTable);
+
+    for (const loc of locations) {
+      try {
+        let eventParentId: string | null = parentFolderId;
+
+        if (loc.address?.trim()) {
+          const addrFolderId = await ensureFolder(drive, loc.address.trim(), parentFolderId);
+          eventParentId = addrFolderId;
+        }
+
+        await ensureFolder(drive, loc.name, eventParentId);
+
+        resultList.push({ locationId: loc.id, locationName: loc.name, ok: true, message: "OK" });
+        logger.info({ locationId: loc.id, locationName: loc.name }, "Location Drive folders ensured");
+      } catch (err: any) {
+        resultList.push({ locationId: loc.id, locationName: loc.name, ok: false, message: err.message });
+        logger.error({ err: err.message, locationId: loc.id }, "Location Drive folder creation failed");
+      }
+    }
+
+    return { success: true, results: resultList };
+  } catch (err: any) {
+    logger.error({ err: err.message }, "ensureAllLocationFolders failed");
+    return { success: false, results: resultList };
+  }
+}
+
+/**
  * createActivityDriveFolders — creates the full 3-level folder hierarchy for one activity.
  *
  * Folder structure follows the admin panel data exactly:

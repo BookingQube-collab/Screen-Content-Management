@@ -22,6 +22,7 @@ import {
   createActivityDriveFolders,
   syncActivityDriveAssets,
   getActivityDriveStatus,
+  ensureAllLocationFolders,
 } from "../lib/driveService";
 import { db } from "@workspace/db";
 import { driveAssetsTable, driveFoldersTable, activitiesTable, locationsTable } from "@workspace/db";
@@ -29,6 +30,18 @@ import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
+
+/**
+ * POST /api/admin/drive/setup-locations
+ * Ensures address + location-name folders exist in Drive for every location.
+ * Should be called once before a bulk activity sync so that the top two
+ * hierarchy levels (Address → LocationName) are always present first.
+ */
+router.post("/admin/drive/setup-locations", requireAuth, async (req, res): Promise<void> => {
+  logger.info("Ensuring Drive folder hierarchy for all locations");
+  const result = await ensureAllLocationFolders();
+  res.status(result.success ? 200 : 500).json(result);
+});
 
 router.post("/admin/drive/:activityId/setup", requireAuth, async (req, res): Promise<void> => {
   const activityId = Number(req.params.activityId);
