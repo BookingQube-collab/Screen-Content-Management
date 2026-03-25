@@ -116,96 +116,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Currently Playing ──────────────────────────────────────────────── */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <Eye className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-display font-bold">Currently Playing</h2>
-          <span className="ml-auto text-xs text-muted-foreground">Click any card to preview</span>
-        </div>
-
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Loading activities…</p>
-        ) : !visibleActivities?.filter(a => a.isActive).length ? (
-          <div className="bg-card border border-border rounded-2xl p-8 text-center">
-            <Monitor className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground text-sm">No active activities right now.</p>
-            <Link href="/admin/activities/new" className="text-primary text-sm underline mt-1 inline-block">Add an activity</Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {visibleActivities
-              .filter(a => a.isActive)
-              .map(act => {
-                const loc = visibleLocations.find(l => l.id === act.locationId);
-                const scr = visibleScreens.find(s => s.id === (act as any).screenId);
-                const driveInfo = driveSummary?.perActivity.find(p => p.activityId === act.id);
-                const thumb = act.cardImageUrl || act.thumbnailUrl || act.heroImageUrl || null;
-                const hasVideo = !!act.heroVideoUrl;
-                return (
-                  <button
-                    key={act.id}
-                    onClick={() => setPreviewActivity({
-                      ...act,
-                      locationName: loc?.name ?? null,
-                      screenName: scr?.name ?? null,
-                      driveInfo,
-                    })}
-                    className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all text-left"
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative h-36 bg-secondary/30 flex items-center justify-center overflow-hidden">
-                      {thumb ? (
-                        <img src={thumb} alt={act.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                      ) : (
-                        <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
-                      )}
-                      {hasVideo && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center">
-                            <Video className="w-5 h-5 text-white" />
-                          </div>
-                        </div>
-                      )}
-                      {!hasVideo && thumb && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center">
-                            <Eye className="w-5 h-5 text-white" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="p-3 space-y-1.5">
-                      <p className="font-semibold text-sm leading-tight line-clamp-1">{act.name}</p>
-                      <div className="flex flex-col gap-0.5">
-                        {loc && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="w-3 h-3" />{loc.name}
-                          </span>
-                        )}
-                        {scr && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Tv className="w-3 h-3" />{scr.name}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-green-500/15 text-green-400">Live</span>
-                        {driveInfo?.lastSyncAt && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            {new Date(driveInfo.lastSyncAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-          </div>
-        )}
-      </div>
+      <CurrentlyPlayingSection
+        isLoading={isLoading}
+        visibleActivities={visibleActivities}
+        visibleLocations={visibleLocations}
+        visibleScreens={visibleScreens}
+        driveSummary={driveSummary}
+        onPreview={setPreviewActivity}
+      />
 
       {/* ── Media preview modal ─────────────────────────────────────────────── */}
       {previewActivity && (
@@ -442,6 +360,102 @@ export default function AdminDashboard() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+// ── Currently Playing Section (collapsible) ───────────────────────────────────
+
+function CurrentlyPlayingSection({ isLoading, visibleActivities, visibleLocations, visibleScreens, driveSummary, onPreview }: {
+  isLoading: boolean;
+  visibleActivities: any[] | undefined;
+  visibleLocations: any[];
+  visibleScreens: any[];
+  driveSummary: DriveSummary | null;
+  onPreview: (act: any) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const activeActivities = visibleActivities?.filter(a => a.isActive) ?? [];
+
+  return (
+    <div className="mb-8 bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      {/* Collapsible header */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-3 p-6 hover:bg-secondary/30 transition-colors text-left"
+      >
+        <Eye className="w-5 h-5 text-primary flex-none" />
+        <div className="flex-1">
+          <h2 className="text-xl font-display font-bold">Currently Playing</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isLoading ? "Loading…" : `${activeActivities.length} active ${activeActivities.length === 1 ? "activity" : "activities"} — click any card to preview`}
+          </p>
+        </div>
+        {open
+          ? <ChevronLeft className="w-5 h-5 text-muted-foreground flex-none rotate-90" />
+          : <ChevronRight className="w-5 h-5 text-muted-foreground flex-none rotate-90" />
+        }
+      </button>
+
+      {/* Expandable body */}
+      {open && (
+        <div className="px-6 pb-6 border-t border-border pt-5">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Loading activities…</p>
+          ) : activeActivities.length === 0 ? (
+            <div className="text-center py-8">
+              <Monitor className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm">No active activities right now.</p>
+              <Link href="/admin/activities/new" className="text-primary text-sm underline mt-1 inline-block">Add an activity</Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {activeActivities.map(act => {
+                const loc = visibleLocations.find(l => l.id === act.locationId);
+                const scr = visibleScreens.find(s => s.id === act.screenId);
+                const driveInfo = driveSummary?.perActivity.find(p => p.activityId === act.id);
+                const thumb = act.cardImageUrl || act.thumbnailUrl || act.heroImageUrl || null;
+                const hasVideo = !!act.heroVideoUrl;
+                return (
+                  <button
+                    key={act.id}
+                    onClick={() => onPreview({ ...act, locationName: loc?.name ?? null, screenName: scr?.name ?? null, driveInfo })}
+                    className="group bg-secondary/30 border border-border rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all text-left"
+                  >
+                    <div className="relative h-36 bg-secondary/50 flex items-center justify-center overflow-hidden">
+                      {thumb ? (
+                        <img src={thumb} alt={act.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center">
+                          {hasVideo ? <Video className="w-5 h-5 text-white" /> : <Eye className="w-5 h-5 text-white" />}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 space-y-1.5">
+                      <p className="font-semibold text-sm leading-tight line-clamp-1">{act.name}</p>
+                      <div className="flex flex-col gap-0.5">
+                        {loc && <span className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="w-3 h-3" />{loc.name}</span>}
+                        {scr && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Tv className="w-3 h-3" />{scr.name}</span>}
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-green-500/15 text-green-400">Live</span>
+                        {driveInfo?.lastSyncAt && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />{new Date(driveInfo.lastSyncAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
