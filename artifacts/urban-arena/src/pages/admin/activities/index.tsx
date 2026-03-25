@@ -33,6 +33,18 @@ export default function AdminActivities() {
     setSyncing(true);
     setSyncProgress({ done: 0, total: sorted.length });
     setSyncResults(null);
+
+    // ── Step 0: pre-create all location folder structures first ──────────────
+    // This ensures "City Center → InflataPark" etc. exist in Drive BEFORE
+    // the per-activity setup runs, regardless of whether those locations
+    // have any activities yet.
+    try {
+      await fetch("/api/admin/drive/setup-locations", {
+        method: "POST",
+        headers: authHeaders,
+      });
+    } catch { /* non-fatal — per-activity setup will retry */ }
+
     const results: SyncResult[] = [];
     for (let i = 0; i < sorted.length; i++) {
       const act = sorted[i] as any;
