@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/admin/MediaUpload";
 import { GalleryUpload } from "@/components/admin/GalleryUpload";
-import { ArrowLeft, Save, Loader2, HardDrive, RefreshCw, FolderOpen } from "lucide-react";
+import { ArrowLeft, Save, Loader2, HardDrive, RefreshCw, FolderOpen, AlertTriangle, Info } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface ApiLocation { id: number; name: string; }
@@ -71,6 +71,7 @@ export default function AdminActivityForm() {
 
   useEffect(() => {
     if (existingData && isEdit) {
+      const gallery = (() => { try { return JSON.parse(existingData.heroGalleryUrls || "[]") as string[]; } catch { return []; } })();
       setFormData({
         name: existingData.name,
         slug: existingData.slug,
@@ -86,7 +87,7 @@ export default function AdminActivityForm() {
         logoUrl: existingData.logoUrl || null,
         heroImageUrl: existingData.heroImageUrl || null,
         heroVideoUrl: existingData.heroVideoUrl || null,
-        heroGalleryUrls: (() => { try { return JSON.parse(existingData.heroGalleryUrls || "[]") as string[]; } catch { return []; } })(),
+        heroGalleryUrls: gallery,
         cardImageUrl: existingData.cardImageUrl || null,
         sortOrder: existingData.sortOrder,
         locationId: existingData.locationId ?? null,
@@ -96,8 +97,26 @@ export default function AdminActivityForm() {
         validFrom: existingData.validFrom ? existingData.validFrom.slice(0, 16) : "",
         validTo:   existingData.validTo   ? existingData.validTo.slice(0, 16)   : "",
       });
+      // Snapshot originals for drive-change detection
+      setOriginalName(existingData.name);
+      setOriginalMedia({
+        logoUrl:       existingData.logoUrl       || null,
+        heroImageUrl:  existingData.heroImageUrl  || null,
+        heroVideoUrl:  existingData.heroVideoUrl  || null,
+        cardImageUrl:  existingData.cardImageUrl  || null,
+        heroGalleryUrls: gallery,
+      });
     }
   }, [existingData, isEdit]);
+
+  // Drive-awareness: track original values to show change notifications
+  const [driveIsSetup, setDriveIsSetup] = useState(false);
+  const [originalName, setOriginalName] = useState("");
+  const [originalMedia, setOriginalMedia] = useState<{
+    logoUrl: string | null; heroImageUrl: string | null;
+    heroVideoUrl: string | null; cardImageUrl: string | null;
+    heroGalleryUrls: string[];
+  }>({ logoUrl: null, heroImageUrl: null, heroVideoUrl: null, cardImageUrl: null, heroGalleryUrls: [] });
 
   const { mutateAsync: createAct, isPending: isCreating } = useCreateActivity({
     request: { headers: authHeaders }
