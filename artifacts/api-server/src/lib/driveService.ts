@@ -34,8 +34,10 @@
  *   2. Create a Service Account and download the JSON key file.
  *   3. In Admin > Settings, paste the full JSON content into the
  *      "Google Drive Service Account Key" field.
- *   4. (Optional) In Admin > Settings, set "Google Drive Parent Folder ID"
- *      to an existing Drive folder ID; leave blank to use Drive root.
+ *   4. REQUIRED: In Admin > Settings, set "Google Drive Parent Folder ID"
+ *      to the Drive folder ID visible in your folder's URL.
+ *      Without this the service account creates all folders in its own private
+ *      Drive root, making them invisible and inaccessible to every user.
  *   5. Share that parent folder with the service account email address
  *      (visible in the JSON key as "client_email").
  */
@@ -82,24 +84,41 @@ async function getDriveClient(): Promise<drive_v3.Drive> {
   return google.drive({ version: "v3", auth });
 }
 
-async function getParentFolderId(): Promise<string | null> {
+/**
+ * Returns the configured parent (root) folder ID from settings.
+ * Throws if not configured — folders must NEVER be created in the service
+ * account's private Drive root (they would be invisible to all users).
+ */
+async function getParentFolderId(): Promise<string> {
   const [row] = await db
     .select({ value: settingsTable.value })
     .from(settingsTable)
     .where(eq(settingsTable.key, "google_drive_parent_folder_id"))
     .limit(1);
-  return row?.value || null;
+  const id = row?.value?.trim();
+  if (!id) {
+    throw new Error(
+      "Google Drive Parent Folder ID is not configured. " +
+      "Go to Admin → Settings → Google Drive Integration and paste the " +
+      "folder ID from your Drive URL (drive.google.com/drive/folders/FOLDER_ID). " +
+      "Without this, folders would be created in the service account's private Drive " +
+      "and would be invisible to you.",
+    );
+  }
+  return id;
 }
 
-/** Find a folder by name inside a parent, or return null. */
+/**
+ * Find a folder by name strictly inside a specific parent.
+ * parentId is REQUIRED — unconstrained Drive-wide name searches are forbidden
+ * because they can match folders in the wrong location.
+ */
 async function findFolder(
   drive: drive_v3.Drive,
   name: string,
-  parentId: string | null,
+  parentId: string,
 ): Promise<string | null> {
-  const q = parentId
-    ? `name='${name.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`
-    : `name='${name.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const q = `name='${name.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
 
   const res = await drive.files.list({
     q,
@@ -110,20 +129,21 @@ async function findFolder(
   return res.data.files?.[0]?.id ?? null;
 }
 
-/** Create a folder and return its ID. */
+/**
+ * Create a folder inside a specific parent and return its ID.
+ * parentId is REQUIRED — never creates in Drive root.
+ */
 async function createFolder(
   drive: drive_v3.Drive,
   name: string,
-  parentId: string | null,
+  parentId: string,
 ): Promise<string> {
-  const meta: drive_v3.Schema$File = {
-    name,
-    mimeType: "application/vnd.google-apps.folder",
-    ...(parentId ? { parents: [parentId] } : {}),
-  };
-
   const res = await drive.files.create({
-    requestBody: meta,
+    requestBody: {
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentId],
+    },
     fields: "id",
   });
 
@@ -131,11 +151,11 @@ async function createFolder(
   return res.data.id;
 }
 
-/** Find or create a folder (idempotent). */
+/** Find or create a folder inside parentId (idempotent). */
 async function ensureFolder(
   drive: drive_v3.Drive,
   name: string,
-  parentId: string | null,
+  parentId: string,
 ): Promise<string> {
   const existing = await findFolder(drive, name, parentId);
   if (existing) return existing;
@@ -236,7 +256,8 @@ export async function createActivityDriveFolders(
     // ── Step 1: Venue folder (location.address level) ──────────────────────────
     // Only created when the location has an address (e.g. "Doha Mall").
     let venueFolderId: string | null = null;
-    let eventParentId: string | null = parentFolderId;
+    // eventParentId starts at the configured root and may be narrowed to the venue folder
+    let eventParentId: string = parentFolderId;
 
     if (locationAddress?.trim()) {
       venueFolderId = await ensureFolder(drive, locationAddress.trim(), parentFolderId);
@@ -246,7 +267,8 @@ export async function createActivityDriveFolders(
     // ── Step 2: Event folder (location.name level, e.g. "Urban Arena") ─────────
     // Only created when the activity belongs to a location.
     let eventFolderId: string | null = null;
-    let actParentId: string | null = eventParentId;
+    // actParentId starts at the venue/root level and may be narrowed to the event folder
+    let actParentId: string = eventParentId;
 
     if (locationName?.trim()) {
       eventFolderId = await ensureFolder(drive, locationName.trim(), eventParentId);
