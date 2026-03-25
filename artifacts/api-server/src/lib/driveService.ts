@@ -4,20 +4,30 @@
  * Uses a Google service account (stored as the setting "google_drive_service_account_key")
  * to create and sync activity asset folders in Google Drive.
  *
- * Folder structure (when activity has a location):
- *   <Location Name>/          ← location is the root folder (e.g. "e3")
- *     <Activity Name>/
- *       video/
- *       poster/
- *       thumbnail/
- *       logo/
+ * Folder structure follows the admin panel hierarchy exactly:
  *
- * Folder structure (when activity has NO location — backward compat):
- *   <Activity Name>/          ← placed directly inside Drive parent / root
- *     video/
- *     poster/
- *     thumbnail/
- *     logo/
+ *   E3 (parent folder configured in settings)/
+ *     <Location Address — physical venue, e.g. "Doha Mall">/   ← only if address set
+ *       <Location Name — event name, e.g. "Urban Arena">/
+ *         <Activity Name>/
+ *           video/
+ *           poster/
+ *           thumbnail/
+ *           logo/
+ *
+ *   If the location has no address set, the venue level is skipped:
+ *     <Location Name>/
+ *       <Activity Name>/
+ *         video/ poster/ thumbnail/ logo/
+ *
+ *   If the activity has no location at all, it goes directly under the root:
+ *     <Activity Name>/
+ *       video/ poster/ thumbnail/ logo/
+ *
+ * DB column mapping in drive_folders:
+ *   rootFolderId     = venue folder (location.address level, e.g. "Doha Mall")
+ *   locationFolderId = event folder  (location.name level,    e.g. "Urban Arena")
+ *   activityFolderId = activity folder (e.g. "Kids Tribe")
  *
  * How to configure:
  *   1. Create a GCP project and enable the Google Drive API.
@@ -135,56 +145,77 @@ async function ensureFolder(
 // ── Public service functions ───────────────────────────────────────────────────
 
 /**
- * createActivityDriveFolders — creates the full folder hierarchy for one activity.
+ * createActivityDriveFolders — creates the full 3-level folder hierarchy for one activity.
  *
- * Structure WITH location:
- *   <Location Name> → <Activity Name> → video/poster/thumbnail/logo
- *   e.g.  e3 → air hockey → video / poster / thumbnail / logo
+ * Folder structure follows the admin panel data exactly:
  *
- * Structure WITHOUT location (backward compat):
- *   <Activity Name> → video/poster/thumbnail/logo
- *   (placed directly inside the configured Drive parent folder or Drive root)
+ *   WITH location address (physical venue):
+ *     <Root (E3)> → <locationAddress (Doha Mall)> → <locationName (Urban Arena)> → <activityName> → subfolders
  *
- * Idempotent: skips creation if folders already exist.
+ *   WITH location but NO address:
+ *     <Root (E3)> → <locationName (Urban Arena)> → <activityName> → subfolders
+ *
+ *   WITHOUT location (backward compat):
+ *     <Root (E3)> → <activityName> → subfolders
+ *
+ * DB column mapping:
+ *   rootFolderId     = venue folder (locationAddress level)  — null when no address
+ *   locationFolderId = event folder (locationName level)     — null when no location
+ *   activityFolderId = activity folder
+ *
+ * Idempotent: reuses existing folders, creates only what is missing.
  */
 export async function createActivityDriveFolders(
   activityId: number,
   activityName: string,
   locationName?: string | null,
+  locationAddress?: string | null,
 ): Promise<{ success: boolean; message: string; folderId?: string }> {
   try {
     const drive = await getDriveClient();
     const parentFolderId = await getParentFolderId();
 
-    // 1. If the activity has a location, the location folder IS the root.
-    //    Otherwise the activity goes directly into the configured parent (or Drive root).
-    let locationFolderId: string | null = null;
-    let actParentId: string | null = parentFolderId; // fallback: Drive root / configured parent
+    // ── Step 1: Venue folder (location.address level) ──────────────────────────
+    // Only created when the location has an address (e.g. "Doha Mall").
+    let venueFolderId: string | null = null;
+    let eventParentId: string | null = parentFolderId;
 
-    if (locationName?.trim()) {
-      locationFolderId = await ensureFolder(drive, locationName.trim(), parentFolderId);
-      actParentId = locationFolderId;
+    if (locationAddress?.trim()) {
+      venueFolderId = await ensureFolder(drive, locationAddress.trim(), parentFolderId);
+      eventParentId = venueFolderId;
     }
 
-    // 2. Ensure activity subfolder inside the location folder (or Drive root)
+    // ── Step 2: Event folder (location.name level, e.g. "Urban Arena") ─────────
+    // Only created when the activity belongs to a location.
+    let eventFolderId: string | null = null;
+    let actParentId: string | null = eventParentId;
+
+    if (locationName?.trim()) {
+      eventFolderId = await ensureFolder(drive, locationName.trim(), eventParentId);
+      actParentId = eventFolderId;
+    }
+
+    // ── Step 3: Activity folder (e.g. "Kids Tribe") ────────────────────────────
     const actFolderId = await ensureFolder(drive, activityName, actParentId);
 
-    // 3. Ensure each asset-type subfolder inside the activity folder
+    // ── Step 4: Media subfolders inside the activity folder ────────────────────
     const subIds: Record<string, string> = {};
     for (const type of SUBFOLDER_TYPES) {
       subIds[type] = await ensureFolder(drive, type, actFolderId);
     }
 
-    // 4. Upsert drive_folders record
-    //    rootFolderId now holds the location folder ID (or null when no location)
+    // ── Step 5: Upsert drive_folders record ────────────────────────────────────
+    //   rootFolderId     = venue folder ("Doha Mall") or null
+    //   locationFolderId = event folder ("Urban Arena") or null
+    //   activityFolderId = activity folder ("Kids Tribe")
     await db
       .insert(driveFoldersTable)
       .values({
         activityId,
         activityName,
         locationName: locationName?.trim() || null,
-        rootFolderId: locationFolderId,     // location folder = effective root
-        locationFolderId,
+        rootFolderId: venueFolderId,
+        locationFolderId: eventFolderId,
         activityFolderId: actFolderId,
         videoFolderId: subIds.video,
         posterFolderId: subIds.poster,
@@ -196,8 +227,8 @@ export async function createActivityDriveFolders(
         set: {
           activityName,
           locationName: locationName?.trim() || null,
-          rootFolderId: locationFolderId,
-          locationFolderId,
+          rootFolderId: venueFolderId,
+          locationFolderId: eventFolderId,
           activityFolderId: actFolderId,
           videoFolderId: subIds.video,
           posterFolderId: subIds.poster,
@@ -207,7 +238,10 @@ export async function createActivityDriveFolders(
         },
       });
 
-    logger.info({ activityId, actFolderId, locationName }, "Drive folders created/verified");
+    logger.info(
+      { activityId, actFolderId, locationName, locationAddress },
+      "Drive folders created/verified",
+    );
     return { success: true, message: "Drive folders ready", folderId: actFolderId };
   } catch (err: any) {
     logger.error({ err: err.message, activityId }, "Drive folder creation failed");

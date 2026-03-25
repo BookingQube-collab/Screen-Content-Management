@@ -1,0 +1,285 @@
+Context:
+You are working on the existing BookingQube admin panel and Google Drive sync module. Do not change the existing login logic, authentication flow, roles logic already working, or any unrelated functionality. Only apply the requested enhancements below. The current system already has admin panel pages such as Location, Activity, Settings, Dashboard, and Google Drive Integration. The folder sync logic must now follow the exact admin panel data structure and naming relationship.
+
+Objective:
+Enhance the system with these updates only:
+
+1. Update the Google Drive sync folder and file structure logic so it creates and syncs folders exactly based on admin panel hierarchy and naming.
+2. Add a dashboard view that shows what is currently playing in each activity in a single listing.
+3. Add a popup preview from dashboard that shows video or image gallery slider, with direct action to open edit page.
+4. In Settings → Google Drive Integration, add clear step-by-step setup instructions for users, including Google Cloud project creation, service account creation, JSON key generation, Drive sharing, and sync testing.
+5. Keep all existing login and other current business logic unchanged.
+
+Style:
+Write production-ready implementation instructions for a developer. Be precise, structured, and strict. Do not rewrite unrelated modules. Do not simplify the business logic. Respect existing data flow and existing admin panel structure. Use clear technical language. Preserve current working features.
+
+Tone:
+Direct, technical, implementation-focused, and careful about not breaking existing logic.
+
+Audience:
+A developer or AI coding assistant working on the BookingQube admin panel and backend sync logic.
+
+Response:
+Implement the following exactly:
+
+--------------------------------------------------
+A. DO NOT CHANGE EXISTING LOGIC
+--------------------------------------------------
+- Do not change existing login logic.
+- Do not change authentication flow.
+- Do not change existing permissions unless required for the new dashboard preview and sync visibility.
+- Do not refactor unrelated modules.
+- Only extend the existing logic with the requested features.
+
+--------------------------------------------------
+B. GOOGLE DRIVE FOLDER STRUCTURE LOGIC
+--------------------------------------------------
+Update sync creation and folder mapping logic so it follows this structure exactly:
+
+E3 (Root folder)/
+  Doha Mall (Location)/
+    Urban Arena (Event Name)/
+      Kids Tribe (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+      Ping Pong (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+  City Center (Location)/
+    Inflatapark (Event Name)/
+      Entrance Tv (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+      Exit TV (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+  KDS (Event Name)/
+    Entrance Tv (Activity Name)/
+      poster/
+      video/
+      thumbnail/
+      logo/
+    Exit TV (Activity Name)/
+      poster/
+      video/
+      thumbnail/
+      logo/
+
+Important mapping rules:
+- "E3" is always the root folder.
+- First level = Location
+- Second level = Event Name
+- Third level = Activity Name
+- Fourth level = media subfolders: poster, video, thumbnail, logo
+
+Use admin panel data mapping like this:
+- Location comes from the Location module.
+- Event Name should come from the Location page "name" field.
+- Address field in location represents the physical location details only, not folder level naming unless explicitly needed elsewhere.
+- Activity Name comes from Activity page and is linked or merged with the selected location/event.
+- Folder creation and sync must follow the actual relationships already present in the admin panel.
+
+Expected behavior:
+- When sync is triggered, system should validate whether each required folder exists in Drive.
+- If folder does not exist, create it automatically.
+- If folder already exists, reuse it.
+- Under every activity folder, ensure these 4 folders always exist:
+  - poster
+  - video
+  - thumbnail
+  - logo
+- This should work dynamically for all current and future admin panel records.
+- Folder creation must scale automatically as new locations, events, and activities are added from admin panel.
+
+Sync behavior:
+- Read files from the proper media subfolder.
+- Match files to the correct activity.
+- Store or update synced metadata in database.
+- Avoid duplicate record creation if file already exists and has already been synced.
+- Support manual sync safely.
+- Maintain stable sync even if some folders are empty.
+- Log clear sync errors if structure is broken or permission fails.
+
+--------------------------------------------------
+C. DASHBOARD: CURRENTLY PLAYING VIEW
+--------------------------------------------------
+In admin panel dashboard, add a single listing view that shows what is currently playing for each activity.
+
+Required dashboard behavior:
+- One combined listing for all activities.
+- Each row or card should show at minimum:
+  - Location Name
+  - Event Name
+  - Activity Name
+  - Current poster
+  - Current thumbnail
+  - Current video status or current playing media
+  - Last synced time
+  - Quick action button
+
+On click behavior:
+- When user clicks a row/card, open a popup modal.
+- In popup:
+  - If media is video, show playable video preview.
+  - If media is images, show gallery in slider/carousel.
+  - Show all currently assigned media for that activity where relevant.
+- In popup include action button:
+  - "Edit Activity" or "Go to Edit Page"
+- Clicking that should take user directly to that activity edit page.
+
+Important:
+- This must be fast and easy for admin to review.
+- This is for monitoring what is live on each activity screen.
+- Do not make user manually search activity one by one.
+- Keep this feature in single listing format.
+
+--------------------------------------------------
+D. SETTINGS → GOOGLE DRIVE INTEGRATION HELP SECTION
+--------------------------------------------------
+Inside Settings → Google Drive Integration, add a proper guided instruction section for setup.
+
+Show the following steps clearly in UI:
+
+Google Drive Integration
+
+1. Create a Google Cloud Project
+Go to: https://console.cloud.google.com
+Click Select Project → New Project
+Enter name (e.g. BookingQube)
+Click Create
+
+2. Enable Google Drive API
+Inside your project
+Go to APIs & Services → Library
+Search: Google Drive API
+Click Enable
+
+3. Create Service Account
+Go to APIs & Services → Credentials
+Click Create Credentials → Service Account
+Enter name: drive-sync-service
+Click Create and Continue
+Skip roles (or give basic Viewer if needed)
+Click Done
+
+4. Generate JSON Key (IMPORTANT)
+Click your service account
+Go to Keys tab
+Click Add Key → Create New Key
+Select JSON
+Download file
+
+This file is your Service Account JSON key.
+
+5. Copy Required Data
+Open the JSON file. It will look similar to this:
+
+{
+  "type": "service_account",
+  "project_id": "bookingqube",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "client_email": "drive-sync-service@bookingqube.iam.gserviceaccount.com",
+  ...
+}
+
+You need:
+- Full JSON → paste in app
+- client_email → used in next step
+
+6. Give Drive Access (CRITICAL STEP)
+If this step is skipped, sync will not work.
+
+Open Google Drive
+Go to your parent folder
+Right click → Share
+Paste:
+drive-sync-service@bookingqube.iam.gserviceaccount.com
+Give Editor access
+Click Send
+
+7. Paste JSON in Your App
+Go to admin panel / backend
+Paste the full JSON key where it says:
+"Paste your GCP Service Account JSON key below"
+
+8. Test Sync
+Click Sync button
+It should:
+- Access Drive
+- Read folders
+- Fetch files
+- Store them in DB
+
+Common Mistakes:
+- Forgot to share Drive folder → access denied
+- Wrong project → API will not work
+- JSON pasted incomplete → authentication fails
+- Folder structure incorrect → sync breaks
+
+Also show example folder structure visually in the UI using the same exact format:
+
+E3 (Root folder)/
+  Doha Mall (Location)/
+    Urban Arena (Event Name)/
+      Kids Tribe (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+      Ping Pong (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+  City Center (Location)/
+    Inflatapark (Event Name)/
+      Entrance Tv (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+      Exit TV (Activity Name)/
+        poster/
+        video/
+        thumbnail/
+        logo/
+  KDS (Event Name)/
+    Entrance Tv (Activity Name)/
+      poster/
+      video/
+      thumbnail/
+      logo/
+    Exit TV (Activity Name)/
+      poster/
+      video/
+      thumbnail/
+      logo/
+
+--------------------------------------------------
+E. IMPLEMENTATION RULES
+--------------------------------------------------
+- Reuse existing admin panel entities and relationships.
+- Do not hardcode only the examples above. The structure must work dynamically for all records.
+- Add validations where needed but do not break old flows.
+- Make UI simple and practical.
+- Use existing design style of the admin panel.
+- Add clean error messages for missing Drive permission, invalid JSON, missing folder, sync failure, or missing mapping.
+- Make sure manual sync and future sync both follow the same folder rules.
+- Keep database updates safe and idempotent.
+- If media already exists in DB, update intelligently instead of creating unnecessary duplicates.
+
+Final output required from developer:
+- Updated backend logic for Drive folder creation and sync mapping
+- Updated dashboard listing with popup preview and edit redirect
+- Updated Settings → Google Drive Integration help UI
+- No changes to existing login logic
+- No unrelated code changes

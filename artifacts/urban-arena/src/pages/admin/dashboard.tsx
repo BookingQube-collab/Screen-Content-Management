@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { useListActivities } from "@workspace/api-client-react";
-import { Activity, PlayCircle, Eye, Monitor, MapPin, Tv, HardDrive, Video, Image as ImageIcon, FolderOpen, RefreshCw } from "lucide-react";
+import { Activity, PlayCircle, Eye, Monitor, MapPin, Tv, HardDrive, Video, Image as ImageIcon, FolderOpen, RefreshCw, X, ChevronLeft, ChevronRight, ExternalLink, Clock } from "lucide-react";
 import { Link } from "wouter";
 
 interface Location { id: number; name: string; code: string; }
@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   const [loadMeta,  setLoadMeta]  = useState(true);
   const [driveSummary, setDriveSummary] = useState<DriveSummary | null>(null);
   const [loadDrive,    setLoadDrive]    = useState(true);
+  const [previewActivity, setPreviewActivity] = useState<any>(null);
 
   const fetchDriveSummary = () => {
     setLoadDrive(true);
@@ -113,6 +114,106 @@ export default function AdminDashboard() {
         <StatsCard title="Featured Items"    value={isLoading ? "-" : featuredCount} icon={PlayCircle} description="Marked as featured" />
         <StatsCard title="Screens"           value={isLoading ? "-" : visibleScreens.length} icon={Tv}       description="Registered screens" />
       </div>
+
+      {/* ── Currently Playing ──────────────────────────────────────────────── */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Eye className="w-5 h-5 text-primary" />
+          <h2 className="text-xl font-display font-bold">Currently Playing</h2>
+          <span className="ml-auto text-xs text-muted-foreground">Click any card to preview</span>
+        </div>
+
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Loading activities…</p>
+        ) : !visibleActivities?.filter(a => a.isActive).length ? (
+          <div className="bg-card border border-border rounded-2xl p-8 text-center">
+            <Monitor className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground text-sm">No active activities right now.</p>
+            <Link href="/admin/activities/new" className="text-primary text-sm underline mt-1 inline-block">Add an activity</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {visibleActivities
+              .filter(a => a.isActive)
+              .map(act => {
+                const loc = visibleLocations.find(l => l.id === act.locationId);
+                const scr = visibleScreens.find(s => s.id === (act as any).screenId);
+                const driveInfo = driveSummary?.perActivity.find(p => p.activityId === act.id);
+                const thumb = act.cardImageUrl || act.thumbnailUrl || act.heroImageUrl || null;
+                const hasVideo = !!act.heroVideoUrl;
+                return (
+                  <button
+                    key={act.id}
+                    onClick={() => setPreviewActivity({
+                      ...act,
+                      locationName: loc?.name ?? null,
+                      screenName: scr?.name ?? null,
+                      driveInfo,
+                    })}
+                    className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all text-left"
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative h-36 bg-secondary/30 flex items-center justify-center overflow-hidden">
+                      {thumb ? (
+                        <img src={thumb} alt={act.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                      )}
+                      {hasVideo && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center">
+                            <Video className="w-5 h-5 text-white" />
+                          </div>
+                        </div>
+                      )}
+                      {!hasVideo && thumb && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center">
+                            <Eye className="w-5 h-5 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 space-y-1.5">
+                      <p className="font-semibold text-sm leading-tight line-clamp-1">{act.name}</p>
+                      <div className="flex flex-col gap-0.5">
+                        {loc && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="w-3 h-3" />{loc.name}
+                          </span>
+                        )}
+                        {scr && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Tv className="w-3 h-3" />{scr.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-green-500/15 text-green-400">Live</span>
+                        {driveInfo?.lastSyncAt && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {new Date(driveInfo.lastSyncAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Media preview modal ─────────────────────────────────────────────── */}
+      {previewActivity && (
+        <MediaPreviewModal
+          activity={previewActivity}
+          onClose={() => setPreviewActivity(null)}
+        />
+      )}
 
       {/* Location-wise report */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -341,6 +442,144 @@ export default function AdminDashboard() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+// ── Media Preview Modal ────────────────────────────────────────────────────────
+
+function MediaPreviewModal({ activity, onClose }: { activity: any; onClose: () => void }) {
+  const galleryImages: string[] = (() => {
+    const urls: string[] = [];
+    try { if (activity.heroGalleryUrls) urls.push(...JSON.parse(activity.heroGalleryUrls)); } catch {}
+    if (activity.heroImageUrl && !urls.includes(activity.heroImageUrl)) urls.push(activity.heroImageUrl);
+    if (activity.cardImageUrl && !urls.includes(activity.cardImageUrl)) urls.push(activity.cardImageUrl);
+    return urls;
+  })();
+
+  const [slideIdx, setSlideIdx] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hasVideo = !!activity.heroVideoUrl;
+  const [mode, setMode] = useState<"video" | "gallery">(hasVideo ? "video" : "gallery");
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const prevSlide = () => setSlideIdx(i => (i - 1 + galleryImages.length) % galleryImages.length);
+  const nextSlide = () => setSlideIdx(i => (i + 1) % galleryImages.length);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div
+        className="relative z-10 bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-border flex-none">
+          <div>
+            <h2 className="text-xl font-display font-bold leading-tight">{activity.name}</h2>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              {activity.locationName && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3" />{activity.locationName}
+                </span>
+              )}
+              {activity.screenName && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Tv className="w-3 h-3" />{activity.screenName}
+                </span>
+              )}
+              {activity.driveInfo?.lastSyncAt && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="w-3 h-3" />Synced {new Date(activity.driveInfo.lastSyncAt).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary ml-4 flex-none">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Mode tabs (show only if both exist) */}
+        {hasVideo && galleryImages.length > 0 && (
+          <div className="flex border-b border-border flex-none">
+            <button
+              onClick={() => setMode("video")}
+              className={`flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${mode === "video" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Video className="w-4 h-4" />Video
+            </button>
+            <button
+              onClick={() => setMode("gallery")}
+              className={`flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${mode === "gallery" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <ImageIcon className="w-4 h-4" />Images ({galleryImages.length})
+            </button>
+          </div>
+        )}
+
+        {/* Media area */}
+        <div className="flex-1 overflow-auto">
+          {mode === "video" && hasVideo ? (
+            <video
+              ref={videoRef}
+              src={activity.heroVideoUrl}
+              controls
+              autoPlay
+              className="w-full max-h-[50vh] bg-black object-contain"
+            />
+          ) : galleryImages.length > 0 ? (
+            <div className="relative bg-black/40">
+              <img
+                src={galleryImages[slideIdx]}
+                alt={`${activity.name} — ${slideIdx + 1}`}
+                className="w-full max-h-[50vh] object-contain mx-auto"
+              />
+              {galleryImages.length > 1 && (
+                <>
+                  <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+                    {galleryImages.map((_, i) => (
+                      <button key={i} onClick={() => setSlideIdx(i)} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === slideIdx ? "bg-white" : "bg-white/40"}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+              <ImageIcon className="w-10 h-10 opacity-30" />
+              <p className="text-sm">No media assigned yet</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex items-center justify-between p-4 border-t border-border bg-secondary/20 flex-none">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400">Live</span>
+            {activity.isFeatured && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary">Featured</span>}
+          </div>
+          <Link
+            href={`/admin/activities/${activity.id}/edit`}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Edit Activity
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
