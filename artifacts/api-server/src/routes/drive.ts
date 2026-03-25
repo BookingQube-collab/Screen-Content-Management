@@ -23,6 +23,7 @@ import {
   syncActivityDriveAssets,
   getActivityDriveStatus,
   ensureAllLocationFolders,
+  validateDriveConnection,
 } from "../lib/driveService";
 import { db } from "@workspace/db";
 import { driveAssetsTable, driveFoldersTable, activitiesTable, locationsTable } from "@workspace/db";
@@ -30,6 +31,16 @@ import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
+
+/**
+ * GET /api/admin/drive/validate
+ * Tests the Drive connection step-by-step: service account key, parent folder ID,
+ * folder access, and listing. Returns detailed diagnostic results.
+ */
+router.get("/admin/drive/validate", requireAuth, async (_req, res): Promise<void> => {
+  const result = await validateDriveConnection();
+  res.status(result.ok ? 200 : 400).json(result);
+});
 
 /**
  * POST /api/admin/drive/setup-locations
