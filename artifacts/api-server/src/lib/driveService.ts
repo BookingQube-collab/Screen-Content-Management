@@ -4,7 +4,16 @@
  * Uses a Google service account (stored as the setting "google_drive_service_account_key")
  * to create and sync activity asset folders in Google Drive.
  *
- * Folder structure:
+ * Folder structure (when activity has a location):
+ *   Urban Arena/
+ *     <Location Name>/
+ *       <Activity Name>/
+ *         video/
+ *         poster/
+ *         thumbnail/
+ *         logo/
+ *
+ * Folder structure (when activity has NO location — backward compat):
  *   Urban Arena/
  *     <Activity Name>/
  *       video/
@@ -25,7 +34,7 @@
 
 import { google, drive_v3 } from "googleapis";
 import { db } from "@workspace/db";
-import { driveAssetsTable, driveFoldersTable, activitiesTable } from "@workspace/db";
+import { driveAssetsTable, driveFoldersTable, activitiesTable, locationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { settingsTable } from "@workspace/db";
 import { uploadToGCS } from "./gcsUpload";
@@ -130,36 +139,54 @@ async function ensureFolder(
 
 /**
  * createActivityDriveFolders — creates the full folder hierarchy for one activity.
+ *
+ * Structure WITH location (new):
+ *   Urban Arena → <Location Name> → <Activity Name> → video/poster/thumbnail/logo
+ *
+ * Structure WITHOUT location (backward compat):
+ *   Urban Arena → <Activity Name> → video/poster/thumbnail/logo
+ *
  * Idempotent: skips creation if folders already exist.
- * Returns the saved DriveFolder record.
  */
 export async function createActivityDriveFolders(
   activityId: number,
   activityName: string,
+  locationName?: string | null,
 ): Promise<{ success: boolean; message: string; folderId?: string }> {
   try {
     const drive = await getDriveClient();
     const parentFolderId = await getParentFolderId();
 
-    // 1. Ensure top-level "Urban Arena" folder
+    // 1. Ensure top-level "Urban Arena" root folder
     const rootId = await ensureFolder(drive, ROOT_FOLDER_NAME, parentFolderId);
 
-    // 2. Ensure activity subfolder
-    const actFolderId = await ensureFolder(drive, activityName, rootId);
+    // 2. If the activity has a location, ensure the location subfolder
+    let locationFolderId: string | null = null;
+    let actParentId = rootId; // parent for the activity folder
 
-    // 3. Ensure each asset-type subfolder
+    if (locationName?.trim()) {
+      locationFolderId = await ensureFolder(drive, locationName.trim(), rootId);
+      actParentId = locationFolderId;
+    }
+
+    // 3. Ensure activity subfolder (inside location folder or directly in root)
+    const actFolderId = await ensureFolder(drive, activityName, actParentId);
+
+    // 4. Ensure each asset-type subfolder
     const subIds: Record<string, string> = {};
     for (const type of SUBFOLDER_TYPES) {
       subIds[type] = await ensureFolder(drive, type, actFolderId);
     }
 
-    // 4. Upsert drive_folders record
+    // 5. Upsert drive_folders record
     await db
       .insert(driveFoldersTable)
       .values({
         activityId,
         activityName,
+        locationName: locationName?.trim() || null,
         rootFolderId: rootId,
+        locationFolderId,
         activityFolderId: actFolderId,
         videoFolderId: subIds.video,
         posterFolderId: subIds.poster,
@@ -170,7 +197,9 @@ export async function createActivityDriveFolders(
         target: driveFoldersTable.activityId,
         set: {
           activityName,
+          locationName: locationName?.trim() || null,
           rootFolderId: rootId,
+          locationFolderId,
           activityFolderId: actFolderId,
           videoFolderId: subIds.video,
           posterFolderId: subIds.poster,
@@ -180,7 +209,7 @@ export async function createActivityDriveFolders(
         },
       });
 
-    logger.info({ activityId, actFolderId }, "Drive folders created/verified");
+    logger.info({ activityId, actFolderId, locationName }, "Drive folders created/verified");
     return { success: true, message: "Drive folders ready", folderId: actFolderId };
   } catch (err: any) {
     logger.error({ err: err.message, activityId }, "Drive folder creation failed");
@@ -232,9 +261,7 @@ export async function syncActivityDriveAssets(
   const errors: string[] = [];
   let synced = 0;
 
-  // Track the first GCS URL per type so we can update the activity afterwards
   const firstUrlByType: Partial<Record<AssetType, string>> = {};
-  // Collect ALL poster URLs for background gallery
   const allPosterUrls: string[] = [];
 
   try {
@@ -279,7 +306,6 @@ export async function syncActivityDriveAssets(
         for (const f of files) {
           if (!f.id || !f.name) continue;
 
-          // Skip Google Docs/Sheets/Slides — they can't be downloaded as binary
           const mime = f.mimeType ?? "";
           if (mime.startsWith("application/vnd.google-apps")) {
             logger.info({ fileId: f.id, name: f.name }, "Skipping Google Workspace file");
@@ -287,14 +313,10 @@ export async function syncActivityDriveAssets(
           }
 
           try {
-            // 1. Download the file content from Drive
             const buffer = await downloadDriveFile(drive, f.id);
-
-            // 2. Upload to GCS Object Storage
             const filename = await uploadToGCS(buffer, f.name, mime || "application/octet-stream");
             const gcsUrl = `/api/uploads/files/${filename}`;
 
-            // 3. Upsert drive_assets record with the GCS URL
             await db
               .insert(driveAssetsTable)
               .values({
@@ -322,11 +344,9 @@ export async function syncActivityDriveAssets(
 
             synced++;
 
-            // Remember the first GCS URL per type to apply to the activity
             if (!firstUrlByType[fileType]) {
               firstUrlByType[fileType] = gcsUrl;
             }
-            // Collect ALL poster URLs for the background gallery
             if (fileType === "poster") {
               allPosterUrls.push(gcsUrl);
             }
@@ -340,7 +360,6 @@ export async function syncActivityDriveAssets(
       } while (pageToken);
     }
 
-    // ── Apply first file of each type to the activity record ────────────────
     const activityUpdate: Record<string, string> = {};
     for (const [type, url] of Object.entries(firstUrlByType) as [AssetType, string][]) {
       const field = ASSET_TYPE_TO_ACTIVITY_FIELD[type];
@@ -349,7 +368,6 @@ export async function syncActivityDriveAssets(
       }
     }
 
-    // Always update heroGalleryUrls if any poster files were synced
     if (allPosterUrls.length > 0) {
       activityUpdate.heroGalleryUrls = JSON.stringify(allPosterUrls);
     }
@@ -362,7 +380,6 @@ export async function syncActivityDriveAssets(
       logger.info({ activityId, fields: Object.keys(activityUpdate) }, "Activity media fields updated from Drive sync");
     }
 
-    // Update last sync time
     await db
       .update(driveFoldersTable)
       .set({ lastSyncAt: new Date(), updatedAt: new Date() })

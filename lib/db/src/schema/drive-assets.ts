@@ -31,8 +31,10 @@ export const driveFoldersTable = pgTable("drive_folders", {
   id: serial("id").primaryKey(),
   activityId: integer("activity_id").notNull().unique(),
   activityName: text("activity_name").notNull(),
-  rootFolderId: text("root_folder_id"),      // Urban Arena folder
-  activityFolderId: text("activity_folder_id"), // e.g. Kids Tribe folder
+  locationName: text("location_name"),           // optional: when activity belongs to a location
+  rootFolderId: text("root_folder_id"),           // Urban Arena folder
+  locationFolderId: text("location_folder_id"),  // Location subfolder (new)
+  activityFolderId: text("activity_folder_id"),  // e.g. Kids Tribe folder
   videoFolderId: text("video_folder_id"),
   posterFolderId: text("poster_folder_id"),
   thumbnailFolderId: text("thumbnail_folder_id"),

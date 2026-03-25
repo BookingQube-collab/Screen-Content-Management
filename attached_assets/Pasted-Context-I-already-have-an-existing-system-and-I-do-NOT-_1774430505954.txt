@@ -1,0 +1,134 @@
+Context:
+I already have an existing system and I do NOT want to change the current logic, flow, or working modules. The current admin panel, activity sync, dashboard behavior, screen mapping, and other existing features must remain intact. I only want to ADD a small enhancement on top of the current setup.
+
+Objective:
+Implement a location-wise Google Drive folder structure and multi-login role-based access control without breaking any existing functionality.
+
+Requirements:
+
+1. Keep Existing Logic Untouched
+- Do not modify or break the existing code logic.
+- Do not refactor working modules unless absolutely required for the new feature.
+- Existing admin functionality must continue to work exactly as it works now.
+- Existing activity sync flow must remain the same, only enhance it.
+
+2. Google Drive Folder Structure Update
+Currently I want the folder structure to be generated like this:
+
+Urban Arena -> InflataPark (Location Name) -> logo, poster, thumbnail, video
+
+Meaning:
+- Parent folder can remain the main location group, for example: Urban Arena
+- Inside that, create activity folder based on the synced activity or selected activity name, for example: InflataPark
+- Inside each activity folder, automatically create these 4 subfolders:
+  - logo
+  - poster
+  - thumbnail
+  - video
+
+Important:
+- Folder generation should happen based on activity sync.
+- It should support more locations in the future.
+- Structure should be flexible so if I add another location later, the same pattern works.
+- Sync should fetch files from the correct location and activity folder only.
+
+3. Multi-Login With Role-Based Access
+Keep the existing admin login, but enhance it.
+
+I want:
+- Existing admin to remain
+- Option to edit admin email and password
+- A new page/module for role management
+- Ability to define roles
+- Ability to create new users according to roles
+- Ability to modify existing users
+
+4. Role Access Behavior
+System should work based on user login.
+
+For normal users:
+- Only merged/assigned activities for that user should be visible
+- Dashboard should show only their relevant data
+- Screens should show only allowed activities/content
+- Access should be restricted based on assigned location/activity/role
+
+For super admin:
+- Full access to everything
+- Can manage all locations
+- Can manage all activities
+- Can manage all users and roles
+- Can edit credentials
+- Can see full dashboard and all data
+
+5. Access Control Scope
+Role-based restrictions should apply across:
+- Dashboard
+- Activity list
+- Sync module
+- Screen/content visibility
+- Related pages and mappings
+
+6. Technical Constraints
+- Do not remove existing functionality
+- Do not rewrite current core logic unnecessarily
+- Add this as an extension layer
+- Use the current system architecture and coding style
+- Make sure backward compatibility is preserved
+- Keep database changes minimal and structured
+- Make the solution scalable for future multiple locations and multiple users
+
+7. Suggested Functional Design
+Please implement with the following concept:
+- Super Admin
+  - full access
+- Admin/User
+  - location-wise and activity-wise restricted access
+- Role management page
+  - create role
+  - assign permissions
+  - create user
+  - assign location
+  - assign activity access
+- Credential management
+  - edit email
+  - edit password for existing admin/user
+
+8. Google Drive Sync Logic
+During sync:
+- Identify logged-in user access
+- Identify assigned location and activity
+- Read only relevant Google Drive folders
+- Pull logo, poster, thumbnail, and video from the correct folder
+- Save/fetch against correct activity mapping without disturbing old data
+
+9. Expected Output
+Please provide:
+- clean implementation plan
+- database changes required
+- backend changes required
+- frontend pages/components required
+- role and permission structure
+- Google Drive folder generation and sync logic
+- step-by-step implementation without changing existing working logic
+
+Style:
+Write production-ready implementation guidance. Be careful, practical, and preserve the current system behavior. Focus on minimal-change enhancement, not full refactoring.
+
+Tone:
+Technical, clear, structured, and safe for existing live modules.
+
+Audience:
+This is for a developer or AI coding assistant working on the existing project.
+
+Response Format:
+Give me:
+1. Feature understanding
+2. Recommended approach
+3. Database/schema updates
+4. Backend changes
+5. Frontend/admin panel changes
+6. Role and permission logic
+7. Google Drive sync logic
+8. Edge cases
+9. Safe implementation order
+10. Final notes on how to avoid breaking existing logic
