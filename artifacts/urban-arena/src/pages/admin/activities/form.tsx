@@ -14,7 +14,7 @@ import { GalleryUpload } from "@/components/admin/GalleryUpload";
 import { ArrowLeft, Save, Loader2, HardDrive, RefreshCw, FolderOpen, AlertTriangle, Info } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
-interface ApiLocation { id: number; name: string; }
+interface ApiLocation { id: number; name: string; address?: string | null; }
 interface ApiScreen   { id: number; name: string; locationId: number | null; moduleType: string; }
 
 const MODULE_TYPES = ["","activity-screen","promo-slider","vertical-kiosk","welcome-screen"];
@@ -426,6 +426,8 @@ export default function AdminActivityForm() {
             changedMediaTypes={changedMediaTypes}
             savedWithDriveChanges={savedWithDriveChanges}
             onContinue={() => setLocation("/admin/activities")}
+            locationName={locations.find(l => l.id === formData.locationId)?.name ?? null}
+            locationAddress={locations.find(l => l.id === formData.locationId)?.address ?? null}
           />
         </div>
       )}
@@ -438,6 +440,9 @@ export default function AdminActivityForm() {
 interface DriveStatus {
   folderRecord: {
     activityFolderId: string | null;
+    locationFolderId: string | null;
+    rootFolderId: string | null;
+    locationName: string | null;
     lastSyncAt: string | null;
     videoFolderId: string | null;
     posterFolderId: string | null;
@@ -456,6 +461,8 @@ function DriveSyncPanel({
   changedMediaTypes,
   savedWithDriveChanges,
   onContinue,
+  locationName,
+  locationAddress,
 }: {
   activityId: number;
   activityName: string;
@@ -465,6 +472,8 @@ function DriveSyncPanel({
   changedMediaTypes?: string[];
   savedWithDriveChanges?: boolean;
   onContinue?: () => void;
+  locationName?: string | null;
+  locationAddress?: string | null;
 }) {
   const [status, setStatus] = useState<DriveStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -543,14 +552,20 @@ function DriveSyncPanel({
           <h2 className="text-xl font-semibold">Google Drive Assets</h2>
         </div>
         {isSetup && (
-          <a
-            href={`https://drive.google.com/drive/folders/${status?.folderRecord?.activityFolderId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-primary hover:underline"
-          >
-            <FolderOpen className="w-4 h-4" /> Open Folder
-          </a>
+          <div className="flex flex-col items-end gap-1">
+            {/* Full breadcrumb path */}
+            <p className="text-xs text-muted-foreground font-mono text-right">
+              {[locationAddress, locationName, activityName].filter(Boolean).join(" / ")}
+            </p>
+            <a
+              href={`https://drive.google.com/drive/folders/${status?.folderRecord?.activityFolderId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <FolderOpen className="w-4 h-4" /> Open Activity Folder
+            </a>
+          </div>
         )}
       </div>
 
@@ -635,10 +650,13 @@ function DriveSyncPanel({
           </div>
 
           {!isSetup && (
-            <p className="text-xs text-muted-foreground bg-secondary/30 rounded-lg p-3">
-              Click <strong>Setup Drive Folders</strong> to create the folder structure:
-              Urban Arena / {activityName || "Activity Name"} / (video, poster, thumbnail, logo)
-            </p>
+            <div className="text-xs text-muted-foreground bg-secondary/30 rounded-lg p-3 space-y-1">
+              <p>Click <strong>Setup Drive Folders</strong> to create the full folder structure in Google Drive:</p>
+              <p className="font-mono text-foreground/70 mt-1">
+                {[locationAddress || "‹venue address›", locationName || "‹location name›", activityName || "‹activity›"].join(" / ")}
+                {" / (video, poster, thumbnail, logo)"}
+              </p>
+            </div>
           )}
         </>
       )}
