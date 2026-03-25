@@ -5,21 +5,19 @@
  * to create and sync activity asset folders in Google Drive.
  *
  * Folder structure (when activity has a location):
- *   Urban Arena/
- *     <Location Name>/
- *       <Activity Name>/
- *         video/
- *         poster/
- *         thumbnail/
- *         logo/
- *
- * Folder structure (when activity has NO location — backward compat):
- *   Urban Arena/
+ *   <Location Name>/          ← location is the root folder (e.g. "e3")
  *     <Activity Name>/
  *       video/
  *       poster/
  *       thumbnail/
  *       logo/
+ *
+ * Folder structure (when activity has NO location — backward compat):
+ *   <Activity Name>/          ← placed directly inside Drive parent / root
+ *     video/
+ *     poster/
+ *     thumbnail/
+ *     logo/
  *
  * How to configure:
  *   1. Create a GCP project and enable the Google Drive API.
@@ -40,7 +38,6 @@ import { settingsTable } from "@workspace/db";
 import { uploadToGCS } from "./gcsUpload";
 import { logger } from "./logger";
 
-const ROOT_FOLDER_NAME = "Urban Arena";
 const SUBFOLDER_TYPES = ["video", "poster", "thumbnail", "logo"] as const;
 type AssetType = (typeof SUBFOLDER_TYPES)[number];
 
@@ -140,11 +137,13 @@ async function ensureFolder(
 /**
  * createActivityDriveFolders — creates the full folder hierarchy for one activity.
  *
- * Structure WITH location (new):
- *   Urban Arena → <Location Name> → <Activity Name> → video/poster/thumbnail/logo
+ * Structure WITH location:
+ *   <Location Name> → <Activity Name> → video/poster/thumbnail/logo
+ *   e.g.  e3 → air hockey → video / poster / thumbnail / logo
  *
  * Structure WITHOUT location (backward compat):
- *   Urban Arena → <Activity Name> → video/poster/thumbnail/logo
+ *   <Activity Name> → video/poster/thumbnail/logo
+ *   (placed directly inside the configured Drive parent folder or Drive root)
  *
  * Idempotent: skips creation if folders already exist.
  */
@@ -157,35 +156,34 @@ export async function createActivityDriveFolders(
     const drive = await getDriveClient();
     const parentFolderId = await getParentFolderId();
 
-    // 1. Ensure top-level "Urban Arena" root folder
-    const rootId = await ensureFolder(drive, ROOT_FOLDER_NAME, parentFolderId);
-
-    // 2. If the activity has a location, ensure the location subfolder
+    // 1. If the activity has a location, the location folder IS the root.
+    //    Otherwise the activity goes directly into the configured parent (or Drive root).
     let locationFolderId: string | null = null;
-    let actParentId = rootId; // parent for the activity folder
+    let actParentId: string | null = parentFolderId; // fallback: Drive root / configured parent
 
     if (locationName?.trim()) {
-      locationFolderId = await ensureFolder(drive, locationName.trim(), rootId);
+      locationFolderId = await ensureFolder(drive, locationName.trim(), parentFolderId);
       actParentId = locationFolderId;
     }
 
-    // 3. Ensure activity subfolder (inside location folder or directly in root)
+    // 2. Ensure activity subfolder inside the location folder (or Drive root)
     const actFolderId = await ensureFolder(drive, activityName, actParentId);
 
-    // 4. Ensure each asset-type subfolder
+    // 3. Ensure each asset-type subfolder inside the activity folder
     const subIds: Record<string, string> = {};
     for (const type of SUBFOLDER_TYPES) {
       subIds[type] = await ensureFolder(drive, type, actFolderId);
     }
 
-    // 5. Upsert drive_folders record
+    // 4. Upsert drive_folders record
+    //    rootFolderId now holds the location folder ID (or null when no location)
     await db
       .insert(driveFoldersTable)
       .values({
         activityId,
         activityName,
         locationName: locationName?.trim() || null,
-        rootFolderId: rootId,
+        rootFolderId: locationFolderId,     // location folder = effective root
         locationFolderId,
         activityFolderId: actFolderId,
         videoFolderId: subIds.video,
@@ -198,7 +196,7 @@ export async function createActivityDriveFolders(
         set: {
           activityName,
           locationName: locationName?.trim() || null,
-          rootFolderId: rootId,
+          rootFolderId: locationFolderId,
           locationFolderId,
           activityFolderId: actFolderId,
           videoFolderId: subIds.video,

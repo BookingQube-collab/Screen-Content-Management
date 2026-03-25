@@ -5,7 +5,7 @@ import { useListActivities, useUpdateActivity, useDeleteActivity, useReorderActi
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Video, MapPin, Tv, Filter, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Edit2, Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, Video, MapPin, Tv, Filter, RefreshCw, CheckCircle2, XCircle, FolderOpen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ApiLocation { id: number; name: string; code: string; }
@@ -309,24 +309,30 @@ export default function AdminActivities() {
                       </td>
 
                       <td className="p-4">
-                        {locName || scrName ? (
-                          <div className="space-y-1">
-                            {locName && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <MapPin className="w-3 h-3 text-pink-400 flex-none" />
-                                <span className="truncate max-w-[120px]">{locName}</span>
-                              </div>
-                            )}
-                            {scrName && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Tv className="w-3 h-3 text-violet-400 flex-none" />
-                                <span className="truncate max-w-[120px]">{scrName}</span>
-                              </div>
-                            )}
+                        <div className="space-y-1.5">
+                          {locName && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3 text-pink-400 flex-none" />
+                              <span className="truncate max-w-[120px]">{locName}</span>
+                            </div>
+                          )}
+                          {scrName && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Tv className="w-3 h-3 text-violet-400 flex-none" />
+                              <span className="truncate max-w-[120px]">{scrName}</span>
+                            </div>
+                          )}
+                          {!locName && !scrName && (
+                            <span className="text-xs text-muted-foreground/50 italic">All screens</span>
+                          )}
+                          {/* Drive folder path */}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground/60 mt-0.5">
+                            <FolderOpen className="w-3 h-3 text-amber-400/70 flex-none" />
+                            <span className="font-mono truncate max-w-[140px]">
+                              {locName ? `${locName} / ${activity.name}` : activity.name}
+                            </span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/50 italic">All screens</span>
-                        )}
+                        </div>
                       </td>
 
                       <td className="p-4">
