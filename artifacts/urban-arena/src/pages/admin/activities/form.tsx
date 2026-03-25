@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { MediaUpload } from "@/components/admin/MediaUpload";
 import { GalleryUpload } from "@/components/admin/GalleryUpload";
 import { ArrowLeft, Save, Loader2, HardDrive, RefreshCw, FolderOpen } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface ApiLocation { id: number; name: string; }
 interface ApiScreen   { id: number; name: string; locationId: number | null; moduleType: string; }
@@ -210,32 +211,25 @@ export default function AdminActivityForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label>Location</Label>
-                <select
-                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
-                  value={formData.locationId ?? ""}
-                  onChange={e => {
-                    const id = e.target.value ? parseInt(e.target.value) : null;
-                    setFormData(f => ({ ...f, locationId: id, screenId: null }));
-                  }}
-                >
-                  <option value="">— All locations —</option>
-                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                </select>
+                <SearchableSelect
+                  options={locations.map(l => ({ value: l.id, label: l.name }))}
+                  value={formData.locationId ?? null}
+                  onChange={v => setFormData(f => ({ ...f, locationId: v !== null ? Number(v) : null, screenId: null }))}
+                  placeholder="— All locations —"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Specific Screen / TV</Label>
-                <select
-                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
-                  value={formData.screenId ?? ""}
-                  onChange={e => setFormData(f => ({ ...f, screenId: e.target.value ? parseInt(e.target.value) : null }))}
-                >
-                  <option value="">— All screens —</option>
-                  {(formData.locationId
+                <SearchableSelect
+                  options={(formData.locationId
                     ? screens.filter(s => s.locationId === formData.locationId)
                     : screens
-                  ).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                  ).map(s => ({ value: s.id, label: s.name }))}
+                  value={formData.screenId ?? null}
+                  onChange={v => setFormData(f => ({ ...f, screenId: v !== null ? Number(v) : null }))}
+                  placeholder="— All screens —"
+                />
               </div>
 
               <div className="space-y-2">
