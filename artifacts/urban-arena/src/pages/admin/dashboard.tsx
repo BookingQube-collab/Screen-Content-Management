@@ -25,7 +25,7 @@ interface DriveSummary {
 }
 
 export default function AdminDashboard() {
-  const { authHeaders } = useRequireAuth();
+  const { authHeaders, assignedLocationIds } = useRequireAuth();
 
   const { data: activities, isLoading: loadAct } = useListActivities({
     request: { headers: authHeaders }
@@ -58,23 +58,34 @@ export default function AdminDashboard() {
 
   const isLoading = loadAct || loadMeta;
 
-  const total        = activities?.length        || 0;
-  const activeCount  = activities?.filter(a => a.isActive).length  || 0;
-  const featuredCount= activities?.filter(a => a.isFeatured).length || 0;
+  // Scope data to assigned locations for non-super-admin users
+  const visibleLocations = assignedLocationIds
+    ? locations.filter(l => assignedLocationIds.includes(l.id))
+    : locations;
+  const visibleScreens = assignedLocationIds
+    ? screens.filter(s => s.locationId !== null && assignedLocationIds.includes(s.locationId))
+    : screens;
+  const visibleActivities = assignedLocationIds
+    ? activities?.filter(a => a.locationId == null || assignedLocationIds.includes(a.locationId))
+    : activities;
 
-  const byLocation = locations.map(loc => ({
+  const total        = visibleActivities?.length        || 0;
+  const activeCount  = visibleActivities?.filter(a => a.isActive).length  || 0;
+  const featuredCount= visibleActivities?.filter(a => a.isFeatured).length || 0;
+
+  const byLocation = visibleLocations.map(loc => ({
     ...loc,
-    count: activities?.filter(a => a.locationId === loc.id).length || 0,
-    active: activities?.filter(a => a.locationId === loc.id && a.isActive).length || 0,
+    count: visibleActivities?.filter(a => a.locationId === loc.id).length || 0,
+    active: visibleActivities?.filter(a => a.locationId === loc.id && a.isActive).length || 0,
   }));
 
-  const byScreen = screens.map(scr => ({
+  const byScreen = visibleScreens.map(scr => ({
     ...scr,
-    count: activities?.filter(a => (a as any).screenId === scr.id).length || 0,
-    active: activities?.filter(a => (a as any).screenId === scr.id && a.isActive).length || 0,
+    count: visibleActivities?.filter(a => (a as any).screenId === scr.id).length || 0,
+    active: visibleActivities?.filter(a => (a as any).screenId === scr.id && a.isActive).length || 0,
   }));
 
-  const unassigned = activities?.filter(a => !a.locationId && !(a as any).screenId).length || 0;
+  const unassigned = visibleActivities?.filter(a => !a.locationId && !(a as any).screenId).length || 0;
 
   return (
     <AdminLayout>
@@ -100,7 +111,7 @@ export default function AdminDashboard() {
         <StatsCard title="Total Activities"  value={isLoading ? "-" : total}         icon={Activity} description="Items in library" />
         <StatsCard title="Active Displays"   value={isLoading ? "-" : activeCount}   icon={Monitor}  description="Visible on kiosks" highlight />
         <StatsCard title="Featured Items"    value={isLoading ? "-" : featuredCount} icon={PlayCircle} description="Marked as featured" />
-        <StatsCard title="Screens"           value={isLoading ? "-" : screens.length} icon={Tv}       description="Registered screens" />
+        <StatsCard title="Screens"           value={isLoading ? "-" : visibleScreens.length} icon={Tv}       description="Registered screens" />
       </div>
 
       {/* Location-wise report */}
@@ -182,7 +193,7 @@ export default function AdminDashboard() {
       <ReportCard title="Activity Overview" icon={Activity}>
         {isLoading ? (
           <p className="text-muted-foreground text-sm py-4 text-center">Loading…</p>
-        ) : !activities?.length ? (
+        ) : !visibleActivities?.length ? (
           <p className="text-muted-foreground text-sm py-4 text-center">No activities yet. <Link href="/admin/activities/new" className="text-primary underline">Add one</Link>.</p>
         ) : (
           <table className="w-full text-sm">
@@ -196,9 +207,9 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {activities.map(act => {
-                const loc = locations.find(l => l.id === act.locationId);
-                const scr = screens.find(s => s.id === (act as any).screenId);
+              {visibleActivities.map(act => {
+                const loc = visibleLocations.find(l => l.id === act.locationId);
+                const scr = visibleScreens.find(s => s.id === (act as any).screenId);
                 return (
                   <tr key={act.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-2.5 font-medium">{act.name}</td>

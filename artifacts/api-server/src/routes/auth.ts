@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db, adminUsersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, adminUsersTable, userPermissionsTable } from "@workspace/db";
+import { eq, isNull } from "drizzle-orm";
 import { AdminLoginBody, AdminLoginResponse, AdminLogoutResponse, GetAuthMeResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -33,10 +33,13 @@ export function requireAuth(req: any, res: any, next: any): void {
   next();
 }
 
-/** Only super_admin users may call this route. */
+/** Only super_admin users may call this route.
+ *  Backward-compatible: tokens issued before the role field was added
+ *  have no role claim; we treat those as super_admin. */
 export function requireSuperAdmin(req: any, res: any, next: any): void {
   requireAuth(req, res, () => {
-    if (req.adminUser?.role !== "super_admin") {
+    const effectiveRole = req.adminUser?.role ?? "super_admin";
+    if (effectiveRole !== "super_admin") {
       res.status(403).json({ error: "Forbidden: super admin only" });
       return;
     }
@@ -78,11 +81,30 @@ router.post("/auth/logout", (_req, res): void => {
 router.get("/auth/me", requireAuth, async (req: any, res): Promise<void> => {
   const [user] = await db.select().from(adminUsersTable).where(eq(adminUsersTable.id, req.adminUser.id));
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const effectiveRole = user.role ?? "super_admin";
+
+  // For non-super-admins, return the unique set of location IDs they have access to.
+  // A permission row with activityId = null means "all activities at that location".
+  // Rows with a specific activityId are a subset — the location is still accessible.
+  let assignedLocationIds: number[] = [];
+  if (effectiveRole !== "super_admin") {
+    const perms = await db
+      .select({ locationId: userPermissionsTable.locationId })
+      .from(userPermissionsTable)
+      .where(eq(userPermissionsTable.userId, user.id));
+    const ids = perms
+      .map(p => p.locationId)
+      .filter((id): id is number => id !== null && id !== undefined);
+    assignedLocationIds = [...new Set(ids)];
+  }
+
   res.json({
     id: user.id,
     email: user.email,
     name: user.name ?? null,
-    role: user.role ?? "super_admin",
+    role: effectiveRole,
+    assignedLocationIds, // empty for super_admin (means "all")
   });
 });
 

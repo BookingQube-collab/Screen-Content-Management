@@ -16,7 +16,7 @@ const MODULE_TYPES = ["activity-screen","promo-slider","vertical-kiosk","welcome
 const EMPTY = { name: "", code: "", locationId: null as number | null, moduleType: "activity-screen", orientation: "landscape", isActive: true, notes: "" };
 
 export default function AdminScreens() {
-  const { authHeaders } = useRequireAuth();
+  const { authHeaders, assignedLocationIds } = useRequireAuth();
   const [rows, setRows]           = useState<Screen[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -32,6 +32,14 @@ export default function AdminScreens() {
       fetch("/api/admin/locations", { headers: authHeaders }).then(r => r.json()),
     ]).then(([scr, loc]) => { setRows(scr); setLocations(loc); }).finally(() => setLoading(false));
   };
+
+  // Filter to screens belonging to assigned locations (super admin sees all)
+  const visibleRows = assignedLocationIds
+    ? rows.filter(s => s.locationId !== null && assignedLocationIds.includes(s.locationId))
+    : rows;
+  const visibleLocations = assignedLocationIds
+    ? locations.filter(l => assignedLocationIds.includes(l.id))
+    : locations;
 
   useEffect(load, []);
 
@@ -76,7 +84,7 @@ export default function AdminScreens() {
       {/* ── Content ── */}
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      ) : rows.length === 0 ? (
+      ) : visibleRows.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl py-20 text-center text-muted-foreground">
           <Tv className="w-10 h-10 mx-auto mb-4 opacity-30" />
           <p>No screens yet. Add your first display unit.</p>
@@ -94,7 +102,7 @@ export default function AdminScreens() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {rows.map(s => (
+                {visibleRows.map(s => (
                   <tr key={s.id} className="hover:bg-secondary/30 transition-colors">
                     <td className="px-6 py-4 font-medium">{s.name}</td>
                     <td className="px-6 py-4 font-mono text-sm text-muted-foreground">{s.code}</td>
@@ -122,7 +130,7 @@ export default function AdminScreens() {
 
           {/* Mobile card list — shown only on small screens */}
           <div className="md:hidden space-y-3">
-            {rows.map(s => (
+            {visibleRows.map(s => (
               <div key={s.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
                 {/* Icon */}
                 <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -173,7 +181,7 @@ export default function AdminScreens() {
               <Label>Location</Label>
               <select className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm" value={form.locationId ?? ""} onChange={e => setForm(f => ({ ...f, locationId: e.target.value ? parseInt(e.target.value) : null }))}>
                 <option value="">— No location —</option>
-                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                {visibleLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">

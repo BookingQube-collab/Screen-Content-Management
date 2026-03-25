@@ -14,7 +14,7 @@ interface ApiScreen   { id: number; name: string; code: string; locationId: numb
 interface SyncResult { id: number; name: string; ok: boolean; msg: string; }
 
 export default function AdminActivities() {
-  const { authHeaders } = useRequireAuth();
+  const { authHeaders, assignedLocationIds } = useRequireAuth();
   const queryClient = useQueryClient();
 
   const [locations, setLocations]         = useState<ApiLocation[]>([]);
@@ -72,10 +72,6 @@ export default function AdminActivities() {
     fetch("/api/admin/screens",   { headers: authHeaders }).then(r => r.json()).then(d => { if (Array.isArray(d)) setScreens(d); }).catch(() => {});
   }, []);
 
-  const filteredScreenOptions = filterLocationId
-    ? screens.filter(s => s.locationId === filterLocationId)
-    : screens;
-
   const { data: activities, isLoading } = useListActivities({
     request: { headers: authHeaders }
   });
@@ -121,8 +117,25 @@ export default function AdminActivities() {
     reorderActivity({ id: targetItem.id,  data: { sortOrder: currentItem.sortOrder } });
   };
 
-  // Sort + filter
-  const sorted = activities ? [...activities].sort((a, b) => a.sortOrder - b.sortOrder) : [];
+  // Restrict filter options to assigned locations/screens for non-super-admin users
+  const visibleLocations = assignedLocationIds
+    ? locations.filter(l => assignedLocationIds.includes(l.id))
+    : locations;
+  const visibleScreens = assignedLocationIds
+    ? screens.filter(s => s.locationId !== null && assignedLocationIds.includes(s.locationId))
+    : screens;
+  const filteredScreenOptions = filterLocationId
+    ? visibleScreens.filter(s => s.locationId === filterLocationId)
+    : visibleScreens;
+
+  // Sort + filter (also scope to assigned locations)
+  const sorted = activities
+    ? [...activities]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .filter(a => assignedLocationIds
+          ? (a as any).locationId == null || assignedLocationIds.includes((a as any).locationId)
+          : true)
+    : [];
   const sortedActivities = sorted.filter(a => {
     if (filterLocationId && (a as any).locationId !== filterLocationId) return false;
     if (filterScreenId   && (a as any).screenId   !== filterScreenId)   return false;
@@ -205,7 +218,7 @@ export default function AdminActivities() {
             }}
           >
             <option value="">All locations</option>
-            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            {visibleLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
 
