@@ -60,6 +60,7 @@ export default function AdminActivityForm() {
     screenId:         null as number | null,
     moduleType:       "" as string,
     isOfflineEnabled: false,
+    videoPlayback:    "once" as "once" | "loop",
     validFrom:        "" as string,
     validTo:          "" as string,
   });
@@ -94,6 +95,7 @@ export default function AdminActivityForm() {
         screenId:   existingData.screenId   ?? null,
         moduleType: existingData.moduleType  ?? "",
         isOfflineEnabled: existingData.isOfflineEnabled ?? false,
+        videoPlayback: ((existingData as any).videoPlayback === "loop" ? "loop" : "once") as "once" | "loop",
         validFrom: existingData.validFrom ? existingData.validFrom.slice(0, 16) : "",
         validTo:   existingData.validTo   ? existingData.validTo.slice(0, 16)   : "",
       });
@@ -334,6 +336,37 @@ export default function AdminActivityForm() {
                  onChange={(urls) => setFormData(f => ({ ...f, heroGalleryUrls: urls }))}
                />
              </div>
+
+             {/* Video playback mode — only shown when a video is uploaded */}
+             {formData.heroVideoUrl && (
+               <div className="flex items-center justify-between gap-4 bg-secondary/40 rounded-xl p-4">
+                 <div>
+                   <p className="font-medium text-sm">Video Playback Mode</p>
+                   <p className="text-xs text-muted-foreground mt-0.5">
+                     {formData.videoPlayback === "loop"
+                       ? "Video loops continuously — never advances to the next slide."
+                       : "Video plays once, then advances to the next activity."}
+                   </p>
+                 </div>
+                 <div className="flex gap-2 flex-shrink-0">
+                   {(["once", "loop"] as const).map(mode => (
+                     <button
+                       key={mode}
+                       type="button"
+                       onClick={() => setFormData(f => ({ ...f, videoPlayback: mode }))}
+                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                         formData.videoPlayback === mode
+                           ? "bg-primary text-white border-primary"
+                           : "border-border text-muted-foreground hover:bg-secondary"
+                       }`}
+                     >
+                       {mode === "once" ? "Play Once" : "Loop"}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
+
              <div className="pt-6 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-8">
                <MediaUpload 
                  label="Card Thumbnail Image" 

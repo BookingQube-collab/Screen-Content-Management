@@ -23,6 +23,7 @@ const activityAssignmentFields = {
   isOfflineEnabled:  zod.boolean().optional(),
   hideInfo:          zod.boolean().optional(),
   hideLocationLogo:  zod.boolean().optional(),
+  videoPlayback:     zod.string().optional(),
   validFrom:         zod.string().nullish(),
   validTo:           zod.string().nullish(),
 };
@@ -137,6 +138,7 @@ export const UpdateActivityBody = zod.object({
   isFeatured: zod.boolean().optional(),
   hideInfo: zod.boolean().optional(),
   hideLocationLogo: zod.boolean().optional(),
+  videoPlayback: zod.enum(["once", "loop"]).optional(),
   sortOrder: zod.number().optional(),
   ctaText: zod.string().optional(),
   locationId: zod.number().int().nullish(),

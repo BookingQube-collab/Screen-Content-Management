@@ -91,6 +91,7 @@ router.post("/activities/create", requireAuth, async (req, res): Promise<void> =
     screenId: parsed.data.screenId ?? null,
     moduleType: parsed.data.moduleType ?? null,
     isOfflineEnabled: parsed.data.isOfflineEnabled ?? false,
+    videoPlayback: (parsed.data as any).videoPlayback ?? "once",
     validFrom: parsed.data.validFrom ? new Date(parsed.data.validFrom) : null,
     validTo:   parsed.data.validTo   ? new Date(parsed.data.validTo)   : null,
   }).returning();
@@ -151,6 +152,7 @@ router.patch("/activities/:id", requireAuth, async (req, res): Promise<void> => 
   if (body.screenId          !== undefined) updateData.screenId          = body.screenId;
   if (body.moduleType        !== undefined) updateData.moduleType        = body.moduleType;
   if (body.isOfflineEnabled  !== undefined) updateData.isOfflineEnabled  = body.isOfflineEnabled;
+  if ((body as any).videoPlayback !== undefined) updateData.videoPlayback = (body as any).videoPlayback;
   if (body.validFrom         !== undefined) updateData.validFrom         = body.validFrom ? new Date(body.validFrom) : null;
   if (body.validTo           !== undefined) updateData.validTo           = body.validTo   ? new Date(body.validTo)   : null;
 

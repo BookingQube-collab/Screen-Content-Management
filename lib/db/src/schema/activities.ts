@@ -27,6 +27,8 @@ export const activitiesTable = pgTable("activities", {
   screenId: integer("screen_id"),
   moduleType: text("module_type"),
   isOfflineEnabled: boolean("is_offline_enabled").notNull().default(false),
+  // 'loop' = replay forever | 'once' = play once then advance to next activity
+  videoPlayback: text("video_playback").notNull().default("once"),
   validFrom: timestamp("valid_from", { withTimezone: true }),
   validTo: timestamp("valid_to", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
