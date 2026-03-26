@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { locationsTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAuth } from "./auth";
+import { broadcast } from "../lib/eventBus";
 
 const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ router.post("/admin/locations", requireAuth, async (req, res): Promise<void> => 
     logoUrl: logoUrl ? String(logoUrl) : null,
     isActive: isActive !== undefined ? Boolean(isActive) : true,
   }).returning();
+  broadcast("content-updated");
   res.status(201).json(row);
 });
 
@@ -38,6 +40,7 @@ router.patch("/admin/locations/:id", requireAuth, async (req, res): Promise<void
   if (!Object.keys(updates).length) { res.status(400).json({ error: "No fields to update" }); return; }
   const [row] = await db.update(locationsTable).set(updates).where(eq(locationsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  broadcast("content-updated");
   res.json(row);
 });
 
@@ -45,6 +48,7 @@ router.delete("/admin/locations/:id", requireAuth, async (req, res): Promise<voi
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   await db.delete(locationsTable).where(eq(locationsTable.id, id));
+  broadcast("content-updated");
   res.json({ success: true });
 });
 

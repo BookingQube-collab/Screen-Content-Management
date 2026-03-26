@@ -9,6 +9,7 @@ import locationsRouter  from "./locations";
 import screensRouter    from "./screens";
 import driveRouter      from "./drive";
 import adminUsersRouter from "./admin-users";
+import eventsRouter     from "./events";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(locationsRouter);
 router.use(screensRouter);
 router.use(driveRouter);
 router.use(adminUsersRouter);
+router.use(eventsRouter);
 
 export default router;

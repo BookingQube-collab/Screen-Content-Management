@@ -7,6 +7,8 @@ import { motion, AnimatePresence }  from "framer-motion";
 import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { FirstRunSetup } from "@/components/display/FirstRunSetup";
+import { useQueryClient } from "@tanstack/react-query";
+import { getListDisplayActivitiesQueryKey } from "@workspace/api-client-react";
 
 const PURPLE = "#7C3AED";
 const PINK   = "#EC4899";
@@ -16,6 +18,7 @@ const DARK   = "#0c0820";
 interface ApiLocation { id: number; name: string; code: string; logoUrl?: string | null; }
 
 export default function DisplayPage() {
+  const queryClient = useQueryClient();
   const { data: rawActivities, isLoading: loadAct, isError: actError } = useListDisplayActivities({
     query: { refetchInterval: 30_000, staleTime: 0, refetchOnWindowFocus: false },
   });
@@ -24,6 +27,18 @@ export default function DisplayPage() {
   const [, setLocation] = useLocation();
   const [showSetup, setShowSetup] = useState(false);
   const [locations, setLocations] = useState<ApiLocation[]>([]);
+
+  // ── SSE — instant refresh whenever admin saves any content change ────────────
+  useEffect(() => {
+    const es = new EventSource("/api/events");
+    es.addEventListener("content-updated", () => {
+      queryClient.invalidateQueries({ queryKey: getListDisplayActivitiesQueryKey() });
+    });
+    es.onerror = () => {
+      // Browser will auto-reconnect on error; no action needed
+    };
+    return () => es.close();
+  }, [queryClient]);
 
   // Fetch locations for logo lookup — polls every 60 s so logo updates apply without reload
   useEffect(() => {
