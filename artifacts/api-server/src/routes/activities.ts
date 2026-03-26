@@ -16,6 +16,7 @@ import {
   ReorderActivityResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "./auth";
+import { broadcast } from "../lib/eventBus";
 
 const router: IRouter = Router();
 
@@ -96,6 +97,7 @@ router.post("/activities/create", requireAuth, async (req, res): Promise<void> =
     validTo:   parsed.data.validTo   ? new Date(parsed.data.validTo)   : null,
   }).returning();
 
+  broadcast("content-updated");
   res.status(201).json(GetActivityResponse.parse(activity));
 });
 
@@ -167,6 +169,7 @@ router.patch("/activities/:id", requireAuth, async (req, res): Promise<void> => 
     return;
   }
 
+  broadcast("content-updated");
   res.json(UpdateActivityResponse.parse(activity));
 });
 
@@ -187,6 +190,7 @@ router.delete("/activities/:id", requireAuth, async (req, res): Promise<void> =>
     return;
   }
 
+  broadcast("content-updated");
   res.sendStatus(204);
 });
 
@@ -214,6 +218,7 @@ router.patch("/activities/:id/reorder", requireAuth, async (req, res): Promise<v
     return;
   }
 
+  broadcast("content-updated");
   res.json(ReorderActivityResponse.parse(activity));
 });
 

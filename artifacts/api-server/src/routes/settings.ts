@@ -3,6 +3,7 @@ import { db, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { ListSettingsResponse, UpsertSettingBody, UpsertSettingResponse } from "@workspace/api-zod";
 import { requireAuth } from "./auth";
+import { broadcast } from "../lib/eventBus";
 
 const router: IRouter = Router();
 
@@ -36,6 +37,7 @@ router.post("/settings", requireAuth, async (req, res): Promise<void> => {
       .returning();
   }
 
+  broadcast("content-updated");
   res.json(UpsertSettingResponse.parse(setting));
 });
 
