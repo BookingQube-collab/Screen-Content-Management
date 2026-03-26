@@ -254,7 +254,8 @@ export default function DisplayPage() {
             className="absolute inset-0 w-full h-full object-cover"
             style={{ filter: "brightness(0.85) saturate(1.3)" }}
             autoPlay muted playsInline preload="auto" fetchPriority="high"
-            onEnded={() => go(idx + 1)}
+            loop={(act as any).videoPlayback === "loop"}
+            onEnded={(act as any).videoPlayback === "loop" ? undefined : () => go(idx + 1)}
           />
         ) : (
           /* Hero image — crossfades on activity change */

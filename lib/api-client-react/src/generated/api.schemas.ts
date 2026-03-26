@@ -47,6 +47,7 @@ export interface Activity {
   /** @nullable */
   moduleType?: string | null;
   isOfflineEnabled?: boolean;
+  videoPlayback?: 'once' | 'loop';
   /** @nullable */
   validFrom?: string | null;
   /** @nullable */
@@ -111,6 +112,7 @@ export interface UpdateActivityBody {
   screenId?: number | null;
   moduleType?: string | null;
   isOfflineEnabled?: boolean;
+  videoPlayback?: 'once' | 'loop';
   validFrom?: string | null;
   validTo?: string | null;
 }
