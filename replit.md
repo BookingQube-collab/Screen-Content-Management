@@ -99,5 +99,5 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API client and Zod schemas
-- `pnpm --filter @workspace/db run push` — push schema changes to database
+- `pnpm --filter @workspace/db run push` — push schema to Supabase (set `DATABASE_URL` in root `.env`; see `.env.example`)
 - `pnpm --filter @workspace/scripts run seed` — seed demo data
