@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm run build:libs && pnpm --filter @workspace/api-server run build",
+  "outputDirectory": "artifacts/api-server/dist"
+}
