@@ -248,7 +248,16 @@ export async function createActivityDriveFolders(
   activityName: string,
   locationName?: string | null,
   locationAddress?: string | null,
-): Promise<{ success: boolean; message: string; folderId?: string }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  folderId?: string;
+  venueFolderId?: string | null;
+  eventFolderId?: string | null;
+  venueUrl?: string | null;
+  eventUrl?: string | null;
+  activityUrl?: string;
+}> {
   try {
     const drive = await getDriveClient();
     const parentFolderId = await getParentFolderId();
