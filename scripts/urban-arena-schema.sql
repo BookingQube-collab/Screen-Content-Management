@@ -1,12 +1,7 @@
--- Urban Arena — Supabase migration (idempotent)
+-- Urban Arena — full database schema
 -- Run in Supabase Dashboard → SQL Editor for project fiozifqhhawsvvtjamfo
--- https://supabase.com/dashboard/project/fiozifqhhawsvvtjamfo/sql/new
---
--- Creates 8 tables: admin_users, user_permissions, activities, settings,
--- locations, screens, drive_assets, drive_folders (+ screens → locations FK).
--- Safe to re-run: CREATE TABLE IF NOT EXISTS; FK uses duplicate_object handler.
 
-CREATE TABLE IF NOT EXISTS "admin_users" (
+CREATE TABLE "admin_users" (
   "id" serial PRIMARY KEY NOT NULL,
   "email" text NOT NULL,
   "password_hash" text NOT NULL,
@@ -17,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "admin_users" (
   CONSTRAINT "admin_users_email_unique" UNIQUE("email")
 );
 
-CREATE TABLE IF NOT EXISTS "user_permissions" (
+CREATE TABLE "user_permissions" (
   "id" serial PRIMARY KEY NOT NULL,
   "user_id" integer NOT NULL,
   "location_id" integer,
@@ -25,7 +20,7 @@ CREATE TABLE IF NOT EXISTS "user_permissions" (
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS "activities" (
+CREATE TABLE "activities" (
   "id" serial PRIMARY KEY NOT NULL,
   "name" text NOT NULL,
   "slug" text NOT NULL,
@@ -57,7 +52,7 @@ CREATE TABLE IF NOT EXISTS "activities" (
   CONSTRAINT "activities_slug_unique" UNIQUE("slug")
 );
 
-CREATE TABLE IF NOT EXISTS "settings" (
+CREATE TABLE "settings" (
   "id" serial PRIMARY KEY NOT NULL,
   "key" text NOT NULL,
   "value" text NOT NULL,
@@ -66,7 +61,7 @@ CREATE TABLE IF NOT EXISTS "settings" (
   CONSTRAINT "settings_key_unique" UNIQUE("key")
 );
 
-CREATE TABLE IF NOT EXISTS "locations" (
+CREATE TABLE "locations" (
   "id" serial PRIMARY KEY NOT NULL,
   "name" text NOT NULL,
   "code" text NOT NULL,
@@ -78,7 +73,7 @@ CREATE TABLE IF NOT EXISTS "locations" (
   CONSTRAINT "locations_code_unique" UNIQUE("code")
 );
 
-CREATE TABLE IF NOT EXISTS "screens" (
+CREATE TABLE "screens" (
   "id" serial PRIMARY KEY NOT NULL,
   "name" text NOT NULL,
   "code" text NOT NULL,
@@ -92,7 +87,7 @@ CREATE TABLE IF NOT EXISTS "screens" (
   CONSTRAINT "screens_code_unique" UNIQUE("code")
 );
 
-CREATE TABLE IF NOT EXISTS "drive_assets" (
+CREATE TABLE "drive_assets" (
   "id" serial PRIMARY KEY NOT NULL,
   "activity_id" integer NOT NULL,
   "file_type" text NOT NULL,
@@ -107,7 +102,7 @@ CREATE TABLE IF NOT EXISTS "drive_assets" (
   CONSTRAINT "drive_assets_drive_file_id_unique" UNIQUE("drive_file_id")
 );
 
-CREATE TABLE IF NOT EXISTS "drive_folders" (
+CREATE TABLE "drive_folders" (
   "id" serial PRIMARY KEY NOT NULL,
   "activity_id" integer NOT NULL,
   "activity_name" text NOT NULL,
@@ -125,10 +120,6 @@ CREATE TABLE IF NOT EXISTS "drive_folders" (
   CONSTRAINT "drive_folders_activity_id_unique" UNIQUE("activity_id")
 );
 
-DO $$ BEGIN
-  ALTER TABLE "screens"
-    ADD CONSTRAINT "screens_location_id_locations_id_fk"
-    FOREIGN KEY ("location_id") REFERENCES "locations"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+ALTER TABLE "screens"
+  ADD CONSTRAINT "screens_location_id_locations_id_fk"
+  FOREIGN KEY ("location_id") REFERENCES "locations"("id") ON DELETE set null ON UPDATE no action;
