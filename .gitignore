@@ -2,6 +2,7 @@
 
 # compiled output
 dist
+artifacts/api-server/index.cjs
 artifacts/api-server/src/**/*.js
 tmp
 out-tsc

@@ -72,30 +72,36 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // esbuild emits `module.exports = vO(entry)` before the Express app is initialized.
+  // esbuild may emit `module.exports = <fn>(entry)` before routes are registered.
   let bundle = await readFile(internalFile, "utf8");
-  bundle = bundle.replace(/module\.exports=vO\(\w+\);/, "");
+  bundle = bundle.replace(/module\.exports=\w+\(\w+\);/, "");
   const patched = bundle.replace(
-    /var sW=(\w+);\s*\/\*!\s*Bundled license/,
-    "var sW=$1;module.exports=$1;exports=$1;\n/*! Bundled license",
+    /("API app initialized"\);var \w+=(\w+);)\s*(\/\*!\s*Bundled license)/,
+    "$1module.exports=$2;exports=$2;\n$3",
   );
   if (patched === bundle) {
     throw new Error(
-      "Could not patch Express app export (expected `var sW=<app>;` before license block)",
+      "Could not patch Express app export (expected app init log before license block)",
     );
   }
   await writeFile(internalFile, patched);
 
-  // Vercel / Node require the entry file; load the fully-initialized app from internal.js.
-  await writeFile(
-    entryFile,
+  const entrySource = (internalRequirePath: string) =>
     [
       '"use strict";',
-      "const loaded = require('./internal.cjs');",
+      `const loaded = require('${internalRequirePath}');`,
       "const app = loaded && loaded.default ? loaded.default : loaded;",
       "module.exports = app;",
       "",
-    ].join("\n"),
+    ].join("\n");
+
+  // Replit / local: dist/index.cjs → dist/internal.cjs
+  await writeFile(entryFile, entrySource("./internal.cjs"));
+
+  // Vercel zero-config Express detects index.cjs at project root (not dist/).
+  await writeFile(
+    path.resolve(__dirname, "index.cjs"),
+    entrySource("./dist/internal.cjs"),
   );
 }
 
