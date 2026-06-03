@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import { build as esbuild } from "esbuild";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, writeFile } from "fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,12 +55,15 @@ async function buildAll() {
       !(pkg.dependencies?.[dep]?.startsWith("workspace:")),
   );
 
+  const internalFile = path.resolve(distDir, "internal.cjs");
+  const entryFile = path.resolve(distDir, "index.cjs");
+
   await esbuild({
     entryPoints: [path.resolve(__dirname, "src/app.ts")],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: path.resolve(distDir, "index.js"),
+    outfile: internalFile,
     define: {
       "process.env.NODE_ENV": '"production"',
     },
@@ -68,6 +71,32 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // esbuild emits `module.exports = vO(entry)` before the Express app is initialized.
+  let bundle = await readFile(internalFile, "utf8");
+  bundle = bundle.replace(/module\.exports=vO\(\w+\);/, "");
+  const patched = bundle.replace(
+    /var sW=(\w+);\s*\/\*!\s*Bundled license/,
+    "var sW=$1;module.exports=$1;exports=$1;\n/*! Bundled license",
+  );
+  if (patched === bundle) {
+    throw new Error(
+      "Could not patch Express app export (expected `var sW=<app>;` before license block)",
+    );
+  }
+  await writeFile(internalFile, patched);
+
+  // Vercel / Node require the entry file; load the fully-initialized app from internal.js.
+  await writeFile(
+    entryFile,
+    [
+      '"use strict";',
+      "const loaded = require('./internal.cjs');",
+      "const app = loaded && loaded.default ? loaded.default : loaded;",
+      "module.exports = app;",
+      "",
+    ].join("\n"),
+  );
 }
 
 buildAll().catch((err) => {

@@ -5,10 +5,11 @@
 | Setting | Value |
 | --- | --- |
 | **Root Directory** | `artifacts/api-server` |
-| **Framework Preset** | Other |
+| **Framework Preset** | Express (or Other with entry below) |
 | **Install Command** | *(from `artifacts/api-server/vercel.json`)* `cd ../.. && pnpm install` |
 | **Build Command** | *(from `vercel.json`)* `cd ../.. && pnpm run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
-| **Output Directory** | `dist` (also set in `artifacts/api-server/vercel.json`; do not use `artifacts/api-server/dist` when Root Directory is already `artifacts/api-server`) |
+| **Output Directory** | `dist` |
+| **Entry / main** | `dist/index.cjs` (thin wrapper → `dist/internal.cjs` bundle of `src/app.ts`) |
 | **Skip TypeScript checking** | **Enabled** (recommended) |
 
 `artifacts/api-server/tsconfig.json` intentionally has `"files": []` so Vercel’s automatic post-build `tsc` is a no-op. Real checking runs in the build command via `pnpm --filter @workspace/api-server run typecheck` (`tsconfig.app.json`).
@@ -18,6 +19,38 @@
 Vercel runs `tsc` when `tsconfig.json` exists at the project root. With `include: ["src"]`, `rootDir: "src"`, and imports from `@workspace/db` / `@workspace/api-zod` (sources under `lib/`), TypeScript cannot emit those dependency files into `src/` and reports `src/routes/health.ts: Emit skipped` (often alongside TS6305 when composite `dist` was missing).
 
 esbuild owns production output; TypeScript is typecheck-only.
+
+## Environment variables (required in Vercel)
+
+Set these in **Vercel → Project → Settings → Environment Variables** for Production (and Preview if needed). Never commit `.env`.
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | **Yes** (for auth/data routes) | PostgreSQL connection string. Not read at cold start; DB connects on first query. Health checks work without it. |
+| `JWT_SECRET` | **Yes** (production) | Secret for admin JWT signing. Dev fallback exists in code; set a strong value in production. |
+| `PORT` | No on Vercel | Only for local `node dist/index.js` / `pnpm dev`. Vercel injects routing; local default when `VERCEL` is set is `3000`. |
+
+### Optional (feature-specific)
+
+| Variable | When needed |
+| --- | --- |
+| `LOG_LEVEL` | Override pino level (default `info`) |
+| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | Image/video uploads (`/api/uploads/*`) |
+| `PUBLIC_OBJECT_SEARCH_PATHS` | Replit/GCS public object search |
+| `PRIVATE_OBJECT_DIR` | Replit object entity paths |
+| `GOOGLE_APPLICATION_CREDENTIALS` / GCP ADC | GCS on Vercel (not Replit sidecar) |
+
+Replit-only object storage sidecar vars are not used on Vercel; the Storage client uses Application Default Credentials when not on Replit.
+
+## Health endpoints (no database required)
+
+After deploy, these should return **200** even if `DATABASE_URL` is missing:
+
+- `GET /` — root health JSON
+- `GET /api/health` — health JSON
+- `GET /api/healthz` — alias
+
+Response includes `status: "ok"` and `database: "configured" | "not_configured"`.
 
 ## Local checks (match CI)
 
@@ -30,6 +63,16 @@ pnpm --filter @workspace/api-server run build
 npx tsc -p tsconfig.json   # should exit 0 (empty project)
 ```
 
-## Environment variables
+### Smoke test after build
 
-Add production secrets in Vercel → Settings → Environment Variables (never commit `.env`).
+```bash
+cd artifacts/api-server
+node -e "const app=require('./dist/index.cjs'); console.log('loaded', typeof app.listen)"
+# Optional: PORT=3000 node -e "require('./dist/index.cjs').listen(process.env.PORT||3000)"
+```
+
+## Runtime crash fixes (serverless)
+
+- **DATABASE_URL** — lazy `pg` pool in `@workspace/db`; no throw at import.
+- **Object Storage** — GCS client created on first use; Replit sidecar only when `REPL_ID` / `REPLIT_OBJECT_STORAGE=1`.
+- **PORT** — not required on Vercel; only `src/index.ts` (local server), not bundled entry `src/app.ts`.

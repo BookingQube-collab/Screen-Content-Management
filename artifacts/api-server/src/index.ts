@@ -1,7 +1,8 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
-const rawPort = process.env["PORT"];
+const rawPort =
+  process.env["PORT"] ?? (process.env["VERCEL"] ? "3000" : undefined);
 
 if (!rawPort) {
   throw new Error(

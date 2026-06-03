@@ -14,22 +14,55 @@ const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 /** Fetch API Response (distinct from Express `Response` and Node stream types). */
 type FetchResponse = Awaited<ReturnType<typeof fetch>>;
 
-export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
+function isReplitObjectStorageSidecar(): boolean {
+  return (
+    process.env.REPLIT_OBJECT_STORAGE === "1" ||
+    process.env.REPL_ID !== undefined
+  );
+}
+
+function createStorageClient(): Storage {
+  if (isReplitObjectStorageSidecar()) {
+    return new Storage({
+      credentials: {
+        audience: "replit",
+        subject_token_type: "access_token",
+        token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+        type: "external_account",
+        credential_source: {
+          url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+          format: {
+            type: "json",
+            subject_token_field_name: "access_token",
+          },
+        },
+        universe_domain: "googleapis.com",
       },
-    },
-    universe_domain: "googleapis.com",
+      projectId: "",
+    });
+  }
+
+  // Vercel / GCP: use Application Default Credentials when configured.
+  return new Storage();
+}
+
+let _objectStorageClient: Storage | undefined;
+
+export function getObjectStorageClient(): Storage {
+  if (!_objectStorageClient) {
+    _objectStorageClient = createStorageClient();
+  }
+  return _objectStorageClient;
+}
+
+/** @deprecated Use getObjectStorageClient() — lazy, safe on Vercel cold start. */
+export const objectStorageClient = new Proxy({} as Storage, {
+  get(_target, prop, receiver) {
+    const value = Reflect.get(getObjectStorageClient() as object, prop, receiver);
+    return typeof value === "function"
+      ? value.bind(getObjectStorageClient())
+      : value;
   },
-  projectId: "",
 });
 
 export class ObjectNotFoundError extends Error {
@@ -78,7 +111,7 @@ export class ObjectStorageService {
       const fullPath = `${searchPath}/${filePath}`;
 
       const { bucketName, objectName } = parseObjectPath(fullPath);
-      const bucket = objectStorageClient.bucket(bucketName);
+      const bucket = getObjectStorageClient().bucket(bucketName);
       const file = bucket.file(objectName);
 
       const [exists] = await file.exists();
@@ -148,7 +181,7 @@ export class ObjectStorageService {
     }
     const objectEntityPath = `${entityDir}${entityId}`;
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-    const bucket = objectStorageClient.bucket(bucketName);
+    const bucket = getObjectStorageClient().bucket(bucketName);
     const objectFile = bucket.file(objectName);
     const [exists] = await objectFile.exists();
     if (!exists) {
@@ -241,6 +274,12 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
+  if (!isReplitObjectStorageSidecar()) {
+    throw new Error(
+      "Replit object-storage sidecar is not available (signed URLs require Replit).",
+    );
+  }
+
   const request = {
     bucket_name: bucketName,
     object_name: objectName,
