@@ -8,7 +8,7 @@
 | **Framework Preset** | Other |
 | **Install Command** | *(from `artifacts/api-server/vercel.json`)* `cd ../.. && pnpm install` |
 | **Build Command** | *(from `vercel.json`)* `cd ../.. && pnpm run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
-| **Output Directory** | `dist` |
+| **Output Directory** | `dist` (also set in `artifacts/api-server/vercel.json`; do not use `artifacts/api-server/dist` when Root Directory is already `artifacts/api-server`) |
 | **Skip TypeScript checking** | **Enabled** (recommended) |
 
 `artifacts/api-server/tsconfig.json` intentionally has `"files": []` so Vercel’s automatic post-build `tsc` is a no-op. Real checking runs in the build command via `pnpm --filter @workspace/api-server run typecheck` (`tsconfig.app.json`).
