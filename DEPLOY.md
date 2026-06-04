@@ -55,16 +55,22 @@ See [.env.example](.env.example) for direct vs pooler comments.
 
 ### Environment variables (Vercel → Settings → Environment Variables)
 
-| Variable | Required | Notes |
+Copy the **Name** column exactly into Vercel. Values come from your local `.env` (see [.env.example](.env.example)); never commit `.env` or paste secrets into the repo.
+
+| Name | Required for API | Value source |
 | --- | --- | --- |
-| `DATABASE_URL` | **Yes** | Supabase pooler URI (see above). Redeploy after adding. |
-| `JWT_SECRET` | **Yes** (production) | Long random string for admin JWTs. Do not use the dev default. |
-| `SUPABASE_URL` | No | e.g. `https://fiozifqhhawsvvtjamfo.supabase.co` — optional metadata; API uses Postgres only today. |
+| `DATABASE_URL` | **Yes** | Supabase **pooler** URI on Vercel (see above); direct `db.*` OK for local/`db:push` |
+| `JWT_SECRET` | **Yes** | Same long random string as local `.env` (≥48 chars); not the dev default in code |
+| `SUPABASE_URL` | No | `https://fiozifqhhawsvvtjamfo.supabase.co` — optional; API uses Postgres only today |
+| `SUPABASE_PROJECT_REF` | No | `fiozifqhhawsvvtjamfo` — optional metadata |
+| `SUPABASE_PUBLISHABLE_KEY` | No | Optional; for future `@supabase/supabase-js` |
+| `SUPABASE_SECRET_KEY` | No | Optional; server-side Supabase client only |
+| `SUPABASE_ANON_KEY` | No | Optional; for future client Supabase auth |
 | `LOG_LEVEL` | No | e.g. `info` |
 | `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | If using uploads | GCS bucket for `/api/uploads/*` on Vercel |
 | GCP credentials | If using uploads | Application Default Credentials (not Replit sidecar) |
 
-Do **not** commit `.env` or paste secrets into the repo.
+**Minimum for a working API:** `DATABASE_URL` + `JWT_SECRET` only. Redeploy after adding or changing vars.
 
 ### Verify API
 

@@ -24,13 +24,22 @@ esbuild owns production output; TypeScript is typecheck-only.
 
 ## Environment variables (required in Vercel)
 
-Set these in **Vercel → Project → Settings → Environment Variables** for Production (and Preview if needed). Never commit `.env`.
+Set these in **Vercel → Project → Settings → Environment Variables** for Production (and Preview if needed). Copy **Name** exactly; paste the same values you use in the repo root `.env` (documented in [.env.example](../../.env.example)). Never commit `.env`.
 
-| Variable | Required | Notes |
+### Copy-paste table (API project)
+
+| Name | Required for API | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | **Yes** (for auth/data routes) | PostgreSQL connection string. Not read at cold start; DB connects on first query. Health checks work without it. |
-| `JWT_SECRET` | **Yes** (production) | Secret for admin JWT signing. Dev fallback exists in code; set a strong value in production. |
-| `PORT` | No on Vercel | Only for local `node index.cjs` / `pnpm dev`. Vercel injects routing; local default when `VERCEL` is set is `3000`. |
+| `DATABASE_URL` | **Yes** | PostgreSQL URI. Prefer Supabase **pooler** on Vercel. Lazy pool; health works without it but auth/data need it. |
+| `JWT_SECRET` | **Yes** | Admin JWT signing; match local `.env` (≥48 chars). Dev fallback exists in code — do not rely on it in production. |
+| `SUPABASE_URL` | No | Optional metadata; API uses Drizzle + `pg` only today. |
+| `SUPABASE_PROJECT_REF` | No | Optional; e.g. `fiozifqhhawsvvtjamfo`. |
+| `SUPABASE_PUBLISHABLE_KEY` | No | Optional; future Supabase JS client. |
+| `SUPABASE_SECRET_KEY` | No | Optional; future server-side Supabase client. |
+| `SUPABASE_ANON_KEY` | No | Optional; future client Supabase auth. |
+| `PORT` | No on Vercel | Local `node index.cjs` / `pnpm dev` only. Vercel injects routing. |
+
+**Minimum for a working API:** `DATABASE_URL` + `JWT_SECRET`.
 
 ### Optional (feature-specific)
 
