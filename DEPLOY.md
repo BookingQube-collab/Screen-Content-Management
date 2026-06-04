@@ -53,7 +53,7 @@ See [.env.example](.env.example) for direct vs pooler comments.
 | **Include source files outside Root Directory** | **Enabled** (default on newer projects; required for `lib/*` workspace deps) |
 | **Framework** | Express (or Other; entry `artifacts/api-server/index.cjs`) |
 | **Install Command** | `pnpm install --frozen-lockfile` (from root `vercel.json`; **no** `cd ../..`) |
-| **Build Command** | `pnpm run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
+| **Build Command** | `pnpm -w run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
 | **Output Directory** | `artifacts/api-server` (from root `vercel.json`) |
 
 **Do not** set Root Directory to `.` while leaving install/build as `cd ../..` — that escapes to `/` and fails with `ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND`.
