@@ -139,8 +139,22 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: "http://127.0.0.1:8080",
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("error", (err, _req, res) => {
+            console.warn(
+              "[vite] API proxy error (is the API on :8080 up?):",
+              err.message,
+            );
+            if (res && !res.headersSent && "writeHead" in res) {
+              res.writeHead(503, { "Content-Type": "application/json" });
+              res.end(
+                JSON.stringify({ error: "API unavailable; retry shortly" }),
+              );
+            }
+          });
+        },
       },
     },
     fs: {

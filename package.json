@@ -6,7 +6,8 @@
     "preinstall": "node -e \"const fs=require('fs');['package-lock.json','yarn.lock'].forEach(f=>{try{fs.unlinkSync(f)}catch(e){if(e.code!=='ENOENT')throw e}});if(!(process.env.npm_config_user_agent||'').startsWith('pnpm/')){console.error('Use pnpm instead');process.exit(1)}\"",
     "dev:api": "pnpm --filter @workspace/api-server run dev",
     "dev:ui": "cross-env BASE_PATH=/ VITE_DEV_PORT=24725 pnpm --filter @workspace/urban-arena run dev",
-    "dev": "concurrently -n api,ui -c blue,green \"pnpm run dev:api\" \"pnpm run dev:ui\"",
+    "dev:ui:wait": "wait-on -t 60000 http-get://127.0.0.1:8080/api/healthz && pnpm run dev:ui",
+    "dev": "concurrently -n api,ui -c blue,green \"pnpm run dev:api\" \"pnpm run dev:ui:wait\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "build:libs": "tsc --build lib/db lib/api-zod",
     "typecheck:libs": "tsc --build",
@@ -20,6 +21,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "wait-on": "^9.0.10"
   }
 }
