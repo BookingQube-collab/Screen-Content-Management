@@ -8,7 +8,8 @@
     "build:libs": "tsc --build lib/db lib/api-zod",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "db:push": "pnpm --filter @workspace/db run push"
+    "db:push": "pnpm --filter @workspace/db run push",
+    "supabase:link": "supabase link --project-ref fiozifqhhawsvvtjamfo"
   },
   "packageManager": "pnpm@9.15.9",
   "private": true,

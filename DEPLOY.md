@@ -28,14 +28,15 @@ Auth and data routes will fail at runtime until `DATABASE_URL` and (for producti
 
 ## Prerequisites (once per Supabase project)
 
-1. Apply schema: [scripts/APPLY-SUPABASE.md](scripts/APPLY-SUPABASE.md) or `pnpm db:push` with root `.env` (never commit `.env`).
+1. Apply schema: [scripts/APPLY-SUPABASE.md](scripts/APPLY-SUPABASE.md), [supabase/migrations/](supabase/migrations/), or `pnpm db:push` with root `.env` (never commit `.env`). See [docs/SUPABASE.md](docs/SUPABASE.md).
 2. Optional seed: `pnpm --filter @workspace/scripts run seed` (local, with `DATABASE_URL` in `.env`).
-3. Copy connection string from **Supabase → Project Settings → Database**.
+3. Copy connection string from **Supabase → Project Settings → Database** (project ref `fiozifqhhawsvvtjamfo`).
+4. Optional CLI: `pnpm supabase:link` after `supabase login` (requires [Supabase CLI](https://supabase.com/docs/guides/cli)).
 
 **`DATABASE_URL` for Vercel (serverless):** prefer the **connection pooler** (session mode, port **5432**), not the direct `db.*.supabase.co` host, to avoid exhausting connections. Example shape (replace password and region):
 
 ```text
-postgresql://postgres.[PROJECT_REF]:YOUR_PASSWORD@aws-0-[REGION].pooler.supabase.com:5432/postgres?sslmode=require
+postgresql://postgres.[PROJECT_REF]:YOUR_PASSWORD@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
 See [.env.example](.env.example) for direct vs pooler comments.
@@ -58,6 +59,7 @@ See [.env.example](.env.example) for direct vs pooler comments.
 | --- | --- | --- |
 | `DATABASE_URL` | **Yes** | Supabase pooler URI (see above). Redeploy after adding. |
 | `JWT_SECRET` | **Yes** (production) | Long random string for admin JWTs. Do not use the dev default. |
+| `SUPABASE_URL` | No | e.g. `https://fiozifqhhawsvvtjamfo.supabase.co` — optional metadata; API uses Postgres only today. |
 | `LOG_LEVEL` | No | e.g. `info` |
 | `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | If using uploads | GCS bucket for `/api/uploads/*` on Vercel |
 | GCP credentials | If using uploads | Application Default Credentials (not Replit sidecar) |
