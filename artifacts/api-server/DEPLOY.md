@@ -6,11 +6,12 @@ Full stack (API + frontend, env vars, test URLs): see **[DEPLOY.md](../../DEPLOY
 
 | Setting | Value |
 | --- | --- |
-| **Root Directory** | `artifacts/api-server` |
+| **Root Directory** | `.` (repo root, **recommended**) — uses [vercel.json](../../vercel.json) |
+| **Include source files outside Root Directory** | **Enabled** (Settings → Build and Deployment → Root Directory) |
 | **Framework Preset** | Express (or Other with entry below) |
-| **Install Command** | *(from `artifacts/api-server/vercel.json`)* `cd ../.. && pnpm install --frozen-lockfile` |
-| **Build Command** | *(from `vercel.json`)* `cd ../.. && pnpm run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
-| **Output Directory** | *(empty — `vercel.json` sets `outputDirectory: null` to override any dashboard `dist` value)* |
+| **Install Command** | `pnpm install --frozen-lockfile` — **no** `cd ../..` (monorepo install runs from repo root) |
+| **Build Command** | `pnpm run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
+| **Output Directory** | `artifacts/api-server` when Root Directory is `.`; empty/`null` when Root Directory is `artifacts/api-server` (see [vercel.json](vercel.json)) |
 | **Entry / main** | `index.cjs` at project root only (`package.json#main`; wraps `dist/internal.cjs`) |
 | **Skip TypeScript checking** | **Enabled** (recommended) |
 
@@ -66,9 +67,9 @@ Response includes `status: "ok"` and `database: "configured" | "not_configured"`
 ## Local checks (match CI)
 
 ```bash
-cd artifacts/api-server
-cd ../.. && pnpm install
-cd ../.. && pnpm run build:libs
+cd ../..   # repo root from this folder
+pnpm install
+pnpm run build:libs
 pnpm --filter @workspace/api-server run typecheck
 pnpm --filter @workspace/api-server run build
 npx tsc -p tsconfig.json   # should exit 0 (empty project)

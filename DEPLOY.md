@@ -49,9 +49,16 @@ See [.env.example](.env.example) for direct vs pooler comments.
 
 | Setting | Value |
 | --- | --- |
-| **Root Directory** | `artifacts/api-server` |
-| **Framework** | Express (or Other; entry `index.cjs`) |
-| **Install / Build** | From [artifacts/api-server/vercel.json](artifacts/api-server/vercel.json) |
+| **Root Directory** | `.` (repo root, **recommended**) — see [vercel.json](vercel.json) |
+| **Include source files outside Root Directory** | **Enabled** (default on newer projects; required for `lib/*` workspace deps) |
+| **Framework** | Express (or Other; entry `artifacts/api-server/index.cjs`) |
+| **Install Command** | `pnpm install --frozen-lockfile` (from root `vercel.json`; **no** `cd ../..`) |
+| **Build Command** | `pnpm run build:libs && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run build` |
+| **Output Directory** | `artifacts/api-server` (from root `vercel.json`) |
+
+**Do not** set Root Directory to `.` while leaving install/build as `cd ../..` — that escapes to `/` and fails with `ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND`.
+
+**Alternative (subdir root):** Root Directory `artifacts/api-server`, same install/build commands (no `cd`) from [artifacts/api-server/vercel.json](artifacts/api-server/vercel.json), Output Directory empty/`null`, **Include source files outside Root Directory** enabled.
 
 
 ### Screenshot-level: fix `database: not_configured`
@@ -116,8 +123,9 @@ Create a **second** Vercel project linked to the same Git repo.
 | **Root Directory** | `artifacts/urban-arena` |
 | **Framework Preset** | Vite (or Other) |
 | **Output Directory** | `dist/public` (set in [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json)) |
-| **Install Command** | `cd ../.. && pnpm install --frozen-lockfile` |
-| **Build Command** | `cd ../.. && pnpm --filter @workspace/urban-arena run typecheck && pnpm --filter @workspace/urban-arena run build` |
+| **Include source files outside Root Directory** | **Enabled** |
+| **Install Command** | `pnpm install --frozen-lockfile` (from [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json); **no** `cd ../..`) |
+| **Build Command** | `pnpm --filter @workspace/urban-arena run typecheck && pnpm --filter @workspace/urban-arena run build` |
 
 ### Build-time environment variables
 
@@ -174,7 +182,7 @@ If your API hostname differs, edit the `destination` host in that file and redep
 | **Two Vercel projects (recommended)** | API = Node/Express serverless; Frontend = static + rewrites. Matches this repo. |
 | **Single project** | Not configured in-repo. Would require merging API + static into one deployment or custom routing. |
 
-The root [vercel.json](vercel.json) only builds the API; do not use it as the frontend project root.
+The root [vercel.json](vercel.json) is for the **API** project when Root Directory is `.`; do not use it as the frontend project root (frontend uses [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json)).
 
 ---
 
