@@ -23,9 +23,43 @@ function requireDatabaseUrl(): string {
   return url;
 }
 
+function isSupabaseHost(hostname: string): boolean {
+  return (
+    hostname.endsWith(".supabase.co") ||
+    hostname.endsWith(".pooler.supabase.com")
+  );
+}
+
+/** Normalize Supabase URLs for node-postgres (libpq SSL compat, avoid pg v9 warnings). */
+export function resolveDatabaseUrl(raw: string): string {
+  const url = new URL(raw);
+  if (!isSupabaseHost(url.hostname)) return raw;
+  if (!url.searchParams.has("uselibpqcompat")) {
+    url.searchParams.set("uselibpqcompat", "true");
+  }
+  if (!url.searchParams.has("sslmode")) {
+    url.searchParams.set("sslmode", "require");
+  }
+  return url.toString();
+}
+
+function createPoolConfig(): pg.PoolConfig {
+  const connectionString = resolveDatabaseUrl(requireDatabaseUrl());
+  const hostname = new URL(connectionString).hostname;
+  return {
+    connectionString,
+    connectionTimeoutMillis: 30_000,
+    idleTimeoutMillis: 30_000,
+    max: 10,
+    ...(isSupabaseHost(hostname)
+      ? { ssl: { rejectUnauthorized: false } }
+      : {}),
+  };
+}
+
 export function getPool(): pg.Pool {
   if (!poolInstance) {
-    poolInstance = new Pool({ connectionString: requireDatabaseUrl() });
+    poolInstance = new Pool(createPoolConfig());
   }
   return poolInstance;
 }
