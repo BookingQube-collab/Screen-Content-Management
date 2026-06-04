@@ -5,19 +5,22 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Local/Replit UI: 24725 (see .replit-artifact). Vercel frontend build sets PORT=3000.
+// Local/Replit UI: 24725 (see .replit-artifact). Vercel builds default PORT=3000 when unset.
 // VITE_DEV_PORT overrides; on Replit, PORT from the web service is used when set.
+const isVercel =
+  process.env.VERCEL === "1" || Boolean(process.env.VERCEL);
+
 const rawPort =
   process.env.VITE_DEV_PORT ??
-  (process.env.VERCEL
-    ? process.env.PORT
+  (isVercel
+    ? (process.env.PORT ?? "3000")
     : process.env.REPL_ID !== undefined
       ? process.env.PORT
       : "24725");
 
 if (!rawPort) {
   throw new Error(
-    "PORT environment variable is required for Vercel builds but was not provided.",
+    "PORT environment variable is required but was not provided.",
   );
 }
 
@@ -27,7 +30,9 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
+const basePath = isVercel
+  ? (process.env.BASE_PATH ?? "/")
+  : process.env.BASE_PATH;
 
 if (!basePath) {
   throw new Error(

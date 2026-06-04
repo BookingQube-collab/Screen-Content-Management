@@ -3,6 +3,12 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm -w run build:libs && pnpm --filter @workspace/urban-arena run build",
   "outputDirectory": "dist/public",
+  "build": {
+    "env": {
+      "PORT": "3000",
+      "BASE_PATH": "/"
+    }
+  },
   "env": {
     "PORT": "3000",
     "BASE_PATH": "/"
