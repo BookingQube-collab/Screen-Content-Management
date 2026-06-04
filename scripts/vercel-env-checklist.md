@@ -79,3 +79,52 @@ echo "<jwt-secret>" | npx vercel env add JWT_SECRET production
 ## After changing env vars
 
 Always **redeploy Production**. Existing serverless instances do not pick up new variables until a new deployment.
+
+## Wrong account vs correct (this workspace)
+
+| | Team / scope | Vercel project | Production URL |
+| --- | --- | --- | --- |
+| **Wrong (cleaned)** | `rjdevil` (RJDEVIL) | `api-server` | (none / not the live API) |
+| **Correct (target)** | `e3urbanarena-8919` Hobby team (sign in with that account; slug from `npx vercel teams ls`) | `screen-content-management-api-serve` | `https://screen-content-management-api-serve.vercel.app` |
+
+CLI on this machine (`npx vercel whoami` → `pathakrajan0-2635`) only lists team **`rjdevil`**. The correct Hobby team is **not** visible until you log in with the account that owns `screen-content-management-api-serve`.
+
+### What was done locally
+
+- Env vars were removed from **`rjdevil/api-server`** (`vercel env rm … -y` for production, preview, development).
+- `artifacts/api-server/.vercel/` was deleted (wrong link: `projectName` `api-server`, `orgId` `team_FZZkZEpOQkr8E8IWFVFAB9Kt`).
+
+### Remove secrets from the wrong project (manual)
+
+If vars reappear on the wrong project:
+
+```powershell
+cd artifacts/api-server
+npx vercel link --yes --project api-server --scope rjdevil
+$vars = 'DATABASE_URL','JWT_SECRET','SUPABASE_URL','SUPABASE_PROJECT_REF','SUPABASE_PUBLISHABLE_KEY','SUPABASE_SECRET_KEY','SUPABASE_ANON_KEY'
+foreach ($v in $vars) { foreach ($e in 'production','preview','development') { npx vercel env rm $v $e -y } }
+Remove-Item -Recurse -Force .vercel
+```
+
+### Push to the correct project (one-time)
+
+1. `npx vercel logout` then `npx vercel login` (browser) with the **e3urbanarena** / Hobby account.
+2. `npx vercel teams ls` — note the **team slug** (not `rjdevil`).
+3. From repo root:
+
+```powershell
+cd artifacts/api-server
+pwsh -File ../../scripts/push-api-vercel-env.ps1 -Scope <correct-team-slug>
+```
+
+The script reads root `.env`, converts **direct** `DATABASE_URL` to **session pooler** (`aws-1-ap-south-1.pooler.supabase.com:5432`), sets all seven variables on production + preview + development, then `vercel deploy --prod`.
+
+Or link manually:
+
+```powershell
+cd artifacts/api-server
+npx vercel link --yes --project screen-content-management-api-serve --scope <correct-team-slug>
+# then env add per variable, or run push-api-vercel-env.ps1
+```
+
+`artifacts/api-server/.vercel` is listed in that folder's `.gitignore` — do not commit it.
