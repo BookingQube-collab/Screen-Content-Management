@@ -1,4 +1,4 @@
-﻿# Vercel environment variables checklist (Urban Arena API)
+# Vercel environment variables checklist (Urban Arena API)
 
 Use this when `GET /` or `GET /api/health` returns `"database":"not_configured"`. That means **`DATABASE_URL` is missing or empty** on the **API** Vercel project (`artifacts/api-server` root), not the frontend project.
 
@@ -128,3 +128,40 @@ npx vercel link --yes --project screen-content-management-api-serve --scope <cor
 ```
 
 `artifacts/api-server/.vercel` is listed in that folder's `.gitignore` — do not commit it.
+
+## Blocked deployment (CLI `vercel deploy --prod`)
+
+If the dashboard shows **Blocked** (deployment id prefix e.g. `7S6iUGYT7`) while another **Production / Ready** deployment exists from **Git**, the CLI production upload was rejected and never replaced your live app.
+
+### What we saw on this project
+
+| Deployment | Source | `readyState` | Production aliases |
+| --- | --- | --- | --- |
+| `dpl_ASAWY3hQiVYWm7fWe7jBUiBGcEbV` (e.g. commit `48e9db7`) | Git (`master`) | **Ready** | `screen-content-management-api-serve-gold.vercel.app`, git branch URL |
+| `dpl_7S6iUGYT756K7ge7DPgGpFRH26x5` | `vercel deploy` CLI | **BLOCKED** | team preview URL only; build output empty |
+
+`npx vercel inspect <blocked-url> --format=json` shows `"readyState": "BLOCKED"`. CLI summary may show `UNKNOWN`. This is normal when a **Git-connected** project blocks or supersedes manual CLI production deploys (deployment protection / production source policy).
+
+### What you should do
+
+1. **Treat Git Production as canonical** — live traffic should stay on the **Ready** deployment from `master` (e.g. `48e9db7`). No action required for the blocked row unless you wanted that CLI build.
+2. **Ignore or remove the blocked deployment** — Dashboard → **Deployments** → blocked row → **⋯** → cancel/delete if offered; it does not serve production when Ready exists.
+3. **Redeploy from Git only** — push to `master`, or Dashboard → open the **Ready** deployment → **Redeploy** (same commit). Do **not** rely on `npx vercel deploy --prod` for this API project.
+4. **Env changes** — set variables in **Settings → Environment Variables**, then **Redeploy** the latest **Ready** Git deployment (not a new CLI deploy).
+5. **If you must use CLI for production** (unusual) — Project **Settings → Deployment Protection** (and related Git/production rules): allow CLI deploys or use a [protection bypass](https://vercel.com/docs/deployment-protection) token. Prefer Git push on Hobby teams with Git integration.
+
+### Inspect locally (correct team linked)
+
+```powershell
+cd artifacts/api-server
+npx vercel link   # screen-content-management-api-serve @ e3urbanarena-8919
+npx vercel inspect https://screen-content-management-api-serve-<hash>.vercel.app --format=json
+npx vercel ls screen-content-management-api-serve
+```
+
+Use the full deployment URL from the dashboard; short ids like `7S6iUGYT7` alone may not resolve in the CLI.
+
+### After changing env vars
+
+Always **redeploy Production** from the **Ready Git** deployment. Existing serverless instances do not pick up new variables until a new deployment.
+
