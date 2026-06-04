@@ -13,9 +13,15 @@ On **Vercel**, the frontend project still sets `PORT=3000` at **build** time onl
 
 ## Quick start
 
-1. Copy [.env.example](../.env.example) → `.env` and fill `DATABASE_URL`, `JWT_SECRET`.
-2. **API:** `pnpm --filter @workspace/api-server run dev`
-3. **UI:** `pnpm --filter @workspace/urban-arena run dev`
+1. Copy [.env.example](../.env.example) → `.env` in the **repo root** and fill `DATABASE_URL`, `JWT_SECRET`, `PORT=8080`.
+2. From the repo root, run **`pnpm dev`** (starts API + UI in parallel). Use **pnpm**, not `npm run dev` (root has no npm `dev` script).
+
+Individual services (optional):
+
+- **API only:** `pnpm run dev:api` (loads root `.env` via `--env-file`)
+- **UI only:** `pnpm run dev:ui` (UI on port **24725**, `BASE_PATH=/`)
+
+Legacy filters still work: `pnpm --filter @workspace/api-server run dev` and `pnpm --filter @workspace/urban-arena run dev`.
 
 Vite proxies browser requests from `/api/*` to `http://localhost:8080` (see `artifacts/urban-arena/vite.config.ts`).
 
