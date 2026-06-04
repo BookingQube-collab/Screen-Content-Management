@@ -1,5 +1,7 @@
 # Deploying `@workspace/api-server` on Vercel
 
+Full stack (API + frontend, env vars, test URLs): see **[DEPLOY.md](../../DEPLOY.md)** at the repo root.
+
 ## Project settings (dashboard)
 
 | Setting | Value |
