@@ -94,6 +94,21 @@ Run: `pnpm --filter @workspace/scripts run seed`
 
 Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references.
 
+## Local development (Windows / CLI)
+
+| Service | Port | URL |
+| --- | --- | --- |
+| Urban Arena UI (Vite) | **24725** | http://localhost:24725 |
+| API (`@workspace/api-server`) | **8080** | http://localhost:8080 (proxy target for `/api`) |
+
+1. Root `.env` from [.env.example](.env.example) (`DATABASE_URL`, `JWT_SECRET`, `PORT=8080` for API).
+2. Terminal A: `pnpm --filter @workspace/api-server run dev`
+3. Terminal B: `pnpm --filter @workspace/urban-arena run dev` — UI on **24725**; Vite proxies `/api` → `http://localhost:8080` ([vite.config.ts](artifacts/urban-arena/vite.config.ts), commit `d4621fd`).
+
+Display: http://localhost:24725/display — Admin: http://localhost:24725/admin/login
+
+More detail: [docs/LOCAL-DEV.md](docs/LOCAL-DEV.md). Do **not** use port 3000 locally (common conflict with other projects).
+
 ## Root Scripts
 
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages

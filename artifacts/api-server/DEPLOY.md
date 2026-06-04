@@ -38,7 +38,7 @@ Set these in **Vercel → Project → Settings → Environment Variables** for P
 | `SUPABASE_PUBLISHABLE_KEY` | No | Optional; future Supabase JS client. |
 | `SUPABASE_SECRET_KEY` | No | Optional; future server-side Supabase client. |
 | `SUPABASE_ANON_KEY` | No | Optional; future client Supabase auth. |
-| `PORT` | No on Vercel | Local `node index.cjs` / `pnpm dev` only. Vercel injects routing. |
+| `PORT` | No on Vercel | Local `node index.cjs` / `pnpm dev` only (default **8080** in `.env.example`). Vercel injects routing. |
 
 **Minimum for a working API:** `DATABASE_URL` + `JWT_SECRET`.
 
@@ -81,7 +81,7 @@ npx tsc -p tsconfig.json   # should exit 0 (empty project)
 cd artifacts/api-server
 node -e "const app=require('./index.cjs'); console.log('loaded', typeof app.listen)"
 test ! -f dist/index.js && test ! -f dist/index.cjs && echo "dist has no index.* entry"
-# Optional: PORT=3000 node index.cjs  # only if you add a listen shim; production uses Vercel routing
+# Optional: PORT=8080 node index.cjs  # local API port; production uses Vercel routing
 ```
 
 Root `index.cjs` is CommonJS (`.cjs`) even if `package.json` had `"type": "module"`. The build does **not** emit `dist/index.js` or `dist/index.cjs` so Vercel cannot select a `.js` bundle under `dist/` when Output Directory was previously set to `dist`.

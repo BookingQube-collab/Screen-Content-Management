@@ -5,11 +5,19 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
 
-const rawPort = process.env.PORT;
+// Local/Replit UI: 24725 (see .replit-artifact). Vercel frontend build sets PORT=3000.
+// VITE_DEV_PORT overrides; on Replit, PORT from the web service is used when set.
+const rawPort =
+  process.env.VITE_DEV_PORT ??
+  (process.env.VERCEL
+    ? process.env.PORT
+    : process.env.REPL_ID !== undefined
+      ? process.env.PORT
+      : "24725");
 
 if (!rawPort) {
   throw new Error(
-    "PORT environment variable is required but was not provided.",
+    "PORT environment variable is required for Vercel builds but was not provided.",
   );
 }
 

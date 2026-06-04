@@ -133,8 +133,10 @@ Required by [artifacts/urban-arena/vite.config.ts](artifacts/urban-arena/vite.co
 
 | Variable | Value |
 | --- | --- |
-| `PORT` | `3000` (any positive number; used only for dev server config, not exposed in static output) |
+| `PORT` | `3000` (any positive number; **Vercel build only** — satisfies Vite config; not exposed in static output) |
 | `BASE_PATH` | `/` |
+
+**Port separation:** Vercel frontend builds use `PORT=3000` (or any positive value) because `VERCEL` is set and `vite.config.ts` reads `PORT` from the environment. **Local / Replit UI dev** uses **24725** by default (`http://localhost:24725`) so it does not clash with other apps on 3000 or with the API on 8080. Optional override: `VITE_DEV_PORT`. See [docs/LOCAL-DEV.md](docs/LOCAL-DEV.md).
 
 No `VITE_*` API URL: the app uses `/api/...` on the same host.
 
