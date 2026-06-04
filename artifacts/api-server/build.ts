@@ -56,7 +56,6 @@ async function buildAll() {
   );
 
   const internalFile = path.resolve(distDir, "internal.cjs");
-  const entryFile = path.resolve(distDir, "index.cjs");
 
   await esbuild({
     entryPoints: [path.resolve(__dirname, "src/app.ts")],
@@ -89,16 +88,15 @@ async function buildAll() {
   const entrySource = (internalRequirePath: string) =>
     [
       '"use strict";',
+      // Vercel Express entrypoint detection requires an express import in index.*.
+      "require('express');",
       `const loaded = require('${internalRequirePath}');`,
       "const app = loaded && loaded.default ? loaded.default : loaded;",
       "module.exports = app;",
       "",
     ].join("\n");
 
-  // Replit / local: dist/index.cjs → dist/internal.cjs
-  await writeFile(entryFile, entrySource("./internal.cjs"));
-
-  // Vercel zero-config Express detects index.cjs at project root (not dist/).
+  // Only root index.cjs — never dist/index.{js,cjs} (outputDirectory=dist would pick dist/).
   await writeFile(
     path.resolve(__dirname, "index.cjs"),
     entrySource("./dist/internal.cjs"),
