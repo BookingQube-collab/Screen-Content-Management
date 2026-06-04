@@ -1,4 +1,4 @@
-# Deploying Urban Arena on Vercel
+﻿# Deploying Urban Arena on Vercel
 
 Urban Arena runs as **two Vercel projects** from this monorepo: an Express API and a static React (Vite) frontend. The frontend calls the API with **relative** paths (`/api/...`); the frontend project **rewrites** those requests to the API deployment URL so the browser stays same-origin (no CORS changes in app code).
 
@@ -6,8 +6,8 @@ Urban Arena runs as **two Vercel projects** from this monorepo: an Express API a
 
 | Path | Package | Deploy? | Role |
 | --- | --- | --- | --- |
-| `artifacts/api-server` | `@workspace/api-server` | **Yes — Project 1** | Express API (`/api/*`, health at `/` and `/api/health`) |
-| `artifacts/urban-arena` | `@workspace/urban-arena` | **Yes — Project 2** | Kiosk display + admin UI (Vite → static `dist/public`) |
+| `artifacts/api-server` | `@workspace/api-server` | **Yes â€” Project 1** | Express API (`/api/*`, health at `/` and `/api/health`) |
+| `artifacts/urban-arena` | `@workspace/urban-arena` | **Yes â€” Project 2** | Kiosk display + admin UI (Vite â†’ static `dist/public`) |
 | `lib/*` | workspace libraries | No (built as deps) | DB, OpenAPI/Zod, React Query client |
 | `scripts/` | `@workspace/scripts` | No | Migrations/seed (run locally or CI) |
 | `artifacts/mockup-sandbox` | dev mockups | No | Not part of production |
@@ -30,7 +30,7 @@ Auth and data routes will fail at runtime until `DATABASE_URL` and (for producti
 
 1. Apply schema: [scripts/APPLY-SUPABASE.md](scripts/APPLY-SUPABASE.md), [supabase/migrations/](supabase/migrations/), or `pnpm db:push` with root `.env` (never commit `.env`). See [docs/SUPABASE.md](docs/SUPABASE.md).
 2. Optional seed: `pnpm --filter @workspace/scripts run seed` (local, with `DATABASE_URL` in `.env`).
-3. Copy connection string from **Supabase → Project Settings → Database** (project ref `fiozifqhhawsvvtjamfo`).
+3. Copy connection string from **Supabase â†’ Project Settings â†’ Database** (project ref `fiozifqhhawsvvtjamfo`).
 4. Optional CLI: `pnpm supabase:link` after `supabase login` (requires [Supabase CLI](https://supabase.com/docs/guides/cli)).
 
 **`DATABASE_URL` for Vercel (serverless):** prefer the **connection pooler** (session mode, port **5432**), not the direct `db.*.supabase.co` host, to avoid exhausting connections. Example shape (replace password and region):
@@ -53,16 +53,38 @@ See [.env.example](.env.example) for direct vs pooler comments.
 | **Framework** | Express (or Other; entry `index.cjs`) |
 | **Install / Build** | From [artifacts/api-server/vercel.json](artifacts/api-server/vercel.json) |
 
-### Environment variables (Vercel → Settings → Environment Variables)
+
+### Screenshot-level: fix `database: not_configured`
+
+1. **Vercel** → [vercel.com/dashboard](https://vercel.com/dashboard) → open the **API** project (example: `screen-content-management-api-serve`).
+2. Top nav **Settings** (not Deployments).
+3. Left sidebar **Environment Variables**.
+4. Button **Add New** (or **Add**):
+   - **Key:** `DATABASE_URL`
+   - **Value:** Supabase **pooler** URI (session, port **5432**). Shape:
+     `postgresql://postgres.fiozifqhhawsvvtjamfo:YOUR_PASSWORD@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require`
+   - **Environment:** check **Production** (and **Preview** if you test preview URLs).
+   - **Save**.
+5. **Add New** again:
+   - **Key:** `JWT_SECRET`
+   - **Value:** same secret as local root `.env` (long random, ≥48 characters).
+   - **Production** → **Save**.
+6. Top nav **Deployments** → latest **Production** row → **⋯** menu → **Redeploy**.
+7. Wait until **Ready** → browser: `https://<your-api-host>/` → JSON should show `"database":"configured"`.
+
+Local root `.env` often uses the **direct** host (`db.*.supabase.co`); Vercel should use the **pooler** host above with the **same password**. See [scripts/vercel-env-checklist.md](scripts/vercel-env-checklist.md).
+
+CLI alternative: `cd artifacts/api-server`, `npx vercel link`, then `npx vercel env add DATABASE_URL production` (requires the Vercel account that owns the API project).
+### Environment variables (Vercel â†’ Settings â†’ Environment Variables)
 
 Copy the **Name** column exactly into Vercel. Values come from your local `.env` (see [.env.example](.env.example)); never commit `.env` or paste secrets into the repo.
 
 | Name | Required for API | Value source |
 | --- | --- | --- |
 | `DATABASE_URL` | **Yes** | Supabase **pooler** URI on Vercel (see above); direct `db.*` OK for local/`db:push` |
-| `JWT_SECRET` | **Yes** | Same long random string as local `.env` (≥48 chars); not the dev default in code |
-| `SUPABASE_URL` | No | `https://fiozifqhhawsvvtjamfo.supabase.co` — optional; API uses Postgres only today |
-| `SUPABASE_PROJECT_REF` | No | `fiozifqhhawsvvtjamfo` — optional metadata |
+| `JWT_SECRET` | **Yes** | Same long random string as local `.env` (â‰¥48 chars); not the dev default in code |
+| `SUPABASE_URL` | No | `https://fiozifqhhawsvvtjamfo.supabase.co` â€” optional; API uses Postgres only today |
+| `SUPABASE_PROJECT_REF` | No | `fiozifqhhawsvvtjamfo` â€” optional metadata |
 | `SUPABASE_PUBLISHABLE_KEY` | No | Optional; for future `@supabase/supabase-js` |
 | `SUPABASE_SECRET_KEY` | No | Optional; server-side Supabase client only |
 | `SUPABASE_ANON_KEY` | No | Optional; for future client Supabase auth |
@@ -112,8 +134,8 @@ No `VITE_*` API URL: the app uses `/api/...` on the same host.
 
 [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json) rewrites:
 
-- `/api/*` → your **Project 1** deployment URL (default: `screen-content-management-api-serve.vercel.app`)
-- everything else → `/index.html` (SPA)
+- `/api/*` â†’ your **Project 1** deployment URL (default: `screen-content-management-api-serve.vercel.app`)
+- everything else â†’ `/index.html` (SPA)
 
 If your API hostname differs, edit the `destination` host in that file and redeploy the frontend.
 
@@ -139,9 +161,9 @@ If your API hostname differs, edit the `destination` host in that file and redep
 ## Checklist: whole solution live
 
 1. **Supabase** schema applied; optional seed run locally.
-2. **API project:** set `DATABASE_URL` + `JWT_SECRET` → redeploy → health shows `database: "configured"`.
-3. **Frontend project:** root `artifacts/urban-arena`, set `PORT` + `BASE_PATH`, confirm rewrite target matches API URL → deploy.
-4. Open frontend URL → `/display` and `/admin/login`; login uses API through `/api/auth/login`.
+2. **API project:** set `DATABASE_URL` + `JWT_SECRET` â†’ redeploy â†’ health shows `database: "configured"`.
+3. **Frontend project:** root `artifacts/urban-arena`, set `PORT` + `BASE_PATH`, confirm rewrite target matches API URL â†’ deploy.
+4. Open frontend URL â†’ `/display` and `/admin/login`; login uses API through `/api/auth/login`.
 
 ---
 
