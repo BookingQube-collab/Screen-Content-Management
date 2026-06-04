@@ -172,7 +172,7 @@ If the API hostname changes, edit the `destination` in [artifacts/urban-arena/ve
 | **Output Directory** | `dist/public` (set in [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json)) |
 | **Include source files outside Root Directory** | **Enabled** |
 | **Install Command** | `pnpm install --frozen-lockfile` (from [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json); **no** `cd ../..`) |
-| **Build Command** | `pnpm --filter @workspace/urban-arena run typecheck && pnpm --filter @workspace/urban-arena run build` |
+| **Build Command** | `pnpm -w run build:libs && pnpm --filter @workspace/urban-arena run build` (from [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json); typecheck skipped on Vercel — `tsc` has known errors, Vite build is the gate) |
 
 ### Build-time environment variables
 

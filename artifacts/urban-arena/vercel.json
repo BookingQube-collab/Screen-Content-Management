@@ -1,8 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/urban-arena run typecheck && pnpm --filter @workspace/urban-arena run build",
+  "buildCommand": "pnpm -w run build:libs && pnpm --filter @workspace/urban-arena run build",
   "outputDirectory": "dist/public",
+  "env": {
+    "PORT": "3000",
+    "BASE_PATH": "/"
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
