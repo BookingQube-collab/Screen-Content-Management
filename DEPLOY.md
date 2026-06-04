@@ -2,6 +2,28 @@
 
 Urban Arena runs as **two Vercel projects** from this monorepo: an Express API and a static React (Vite) frontend. The frontend calls the API with **relative** paths (`/api/...`); the frontend project **rewrites** those requests to the API deployment URL so the browser stays same-origin (no CORS changes in app code).
 
+## Why you see JSON on the API URL (not the UI)
+
+If you open **`https://screen-content-management-api-serve.vercel.app`** (or its production alias **`https://screen-content-management-api-serve-gold.vercel.app`**) in a browser, you will only see:
+
+```json
+{"status":"ok","database":"configured"}
+```
+
+That is **correct**. That hostname is **Project 1 — the Express API**. It does not serve `index.html`, `/display`, or `/admin/login`. The root [vercel.json](vercel.json) builds `artifacts/api-server` only; there is no React bundle on that deployment.
+
+| URL | What it is | What you should see |
+| --- | --- | --- |
+| `https://screen-content-management-api-serve.vercel.app` | API (Project 1) | Health JSON at `/` |
+| `https://screen-content-management-api-serve-gold.vercel.app` | API production alias (same app) | Same health JSON |
+| `https://YOUR-FRONTEND-PROJECT.vercel.app` | **UI (Project 2 — you must create this)** | React app at `/`, `/display`, `/admin/login` |
+
+**Use the frontend URL for the kiosk and admin UI.** Keep the API URL for health checks, `curl`, and monitoring. `/api/*` on the frontend host is proxied to the API via [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json).
+
+You cannot serve the full UI from the API Vercel project without merging API + static into one custom deployment (not configured in this repo).
+
+---
+
 ## Deployable parts
 
 | Path | Package | Deploy? | Role |
@@ -116,7 +138,32 @@ More detail: [artifacts/api-server/DEPLOY.md](artifacts/api-server/DEPLOY.md).
 
 ## Project 2: Frontend (new Vercel project)
 
-Create a **second** Vercel project linked to the same Git repo.
+Create a **second** Vercel project linked to the **same Git repository** as the API. Until this exists, there is no production UI URL — only the API JSON above.
+
+### Step-by-step: create the frontend Vercel project
+
+1. [vercel.com/new](https://vercel.com/new) → **Import** the same Git repo used for `screen-content-management-api-serve`.
+2. **Project name:** e.g. `urban-arena` or `urban-arena-display` (your choice; this becomes `https://<project-name>.vercel.app`).
+3. **Root Directory:** click **Edit** → set to **`artifacts/urban-arena`** (not repo root).
+4. **Framework Preset:** Vite (or Other — [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json) supplies install/build/output).
+5. **Include source files outside the Root Directory:** **Enabled** (required for `lib/*` workspace packages).
+6. **Environment Variables** (Production + Preview) → add:
+
+   | Key | Value |
+   | --- | --- |
+   | `PORT` | `3000` |
+   | `BASE_PATH` | `/` |
+
+7. **Deploy**. Vercel runs install/build from [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json).
+8. After **Ready**, open:
+   - `https://<your-frontend-project>.vercel.app/` — app shell
+   - `https://<your-frontend-project>.vercel.app/display` — kiosk UI
+   - `https://<your-frontend-project>.vercel.app/admin/login` — admin login
+   - `https://<your-frontend-project>.vercel.app/api/health` — should return the same JSON as the API (via rewrite to `screen-content-management-api-serve.vercel.app`)
+
+If the API hostname changes, edit the `destination` in [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json) (currently `https://screen-content-management-api-serve.vercel.app/api/:path*`) and redeploy **only** the frontend project.
+
+### Dashboard settings (reference)
 
 | Setting | Value |
 | --- | --- |
@@ -184,7 +231,7 @@ If your API hostname differs, edit the `destination` host in that file and redep
 | **Two Vercel projects (recommended)** | API = Node/Express serverless; Frontend = static + rewrites. Matches this repo. |
 | **Single project** | Not configured in-repo. Would require merging API + static into one deployment or custom routing. |
 
-The root [vercel.json](vercel.json) is for the **API** project when Root Directory is `.`; do not use it as the frontend project root (frontend uses [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json)).
+The root [vercel.json](vercel.json) is **API-only** (`outputDirectory`: `artifacts/api-server`). When Vercel **Root Directory** is `.`, that file deploys Express — not the React UI. Do not point the frontend project at repo root or you will get the wrong app (or a failed build). The frontend project must use root **`artifacts/urban-arena`** and [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json).
 
 ---
 
