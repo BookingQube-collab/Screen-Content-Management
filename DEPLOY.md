@@ -145,7 +145,7 @@ Create a **second** Vercel project linked to the **same Git repository** as the 
 1. [vercel.com/new](https://vercel.com/new) → **Import** the same Git repo used for `screen-content-management-api-serve`.
 2. **Project name:** e.g. `urban-arena` or `urban-arena-display` (your choice; this becomes `https://<project-name>.vercel.app`).
 3. **Root Directory:** click **Edit** → set to **`artifacts/urban-arena`** (not repo root).
-4. **Framework Preset:** Vite (or Other — [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json) supplies install/build/output).
+4. **Framework Preset:** **Vite** or **Other** — **not Express**. If the dashboard is set to Express, the deploy step fails with `No entrypoint found in output directory: "dist/public"` (Vercel looks for `server.js` / `index.js` in static output). [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json) sets `"framework": "vite"` to override a wrong preset.
 5. **Include source files outside the Root Directory:** **Enabled** (required for `lib/*` workspace packages).
 6. **Environment Variables** (Production + Preview) → add:
 
@@ -168,7 +168,7 @@ If the API hostname changes, edit the `destination` in [artifacts/urban-arena/ve
 | Setting | Value |
 | --- | --- |
 | **Root Directory** | `artifacts/urban-arena` |
-| **Framework Preset** | Vite (or Other) |
+| **Framework Preset** | **Vite** or **Other** (never Express — see step 4 above) |
 | **Output Directory** | `dist/public` (set in [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json)) |
 | **Include source files outside Root Directory** | **Enabled** |
 | **Install Command** | `pnpm install --frozen-lockfile` (from [artifacts/urban-arena/vercel.json](artifacts/urban-arena/vercel.json); **no** `cd ../..`) |
