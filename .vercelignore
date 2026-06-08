@@ -1,0 +1,10 @@
+node_modules
+.git
+.cursor
+attached_assets
+scripts/_pgtmp
+scripts/*.json
+artifacts/mockup-sandbox
+**/.replit-artifact
+**/uploads
+**/*.mp4
