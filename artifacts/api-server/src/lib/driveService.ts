@@ -85,6 +85,15 @@ async function getDriveClient(): Promise<drive_v3.Drive> {
 }
 
 /**
+ * Strip accidental URL fragments from a pasted Drive folder ID.
+ * Users often copy `.../folders/ABC123?dmr` or `.../folders/ABC123#section`
+ * instead of just `ABC123`. The `?` breaks Drive API list queries.
+ */
+export function sanitizeDriveFolderId(raw: string): string {
+  return raw.trim().split(/[?#]/)[0].trim();
+}
+
+/**
  * Returns the configured parent (root) folder ID from settings.
  * Throws if not configured — folders must NEVER be created in the service
  * account's private Drive root (they would be invisible to all users).
@@ -95,7 +104,7 @@ async function getParentFolderId(): Promise<string> {
     .from(settingsTable)
     .where(eq(settingsTable.key, "google_drive_parent_folder_id"))
     .limit(1);
-  const id = row?.value?.trim();
+  const id = sanitizeDriveFolderId(row?.value ?? "");
   if (!id) {
     throw new Error(
       "Google Drive Parent Folder ID is not configured. " +

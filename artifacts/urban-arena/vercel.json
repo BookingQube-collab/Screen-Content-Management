@@ -12,7 +12,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://screen-content-management-api-serve-gold.vercel.app/api/:path*"
+      "destination": "https://screen-content-management-api-serve-e3urbanarena-8919s-projects.vercel.app/api/:path*"
     },
     {
       "source": "/(.*)",

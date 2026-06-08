@@ -48,11 +48,12 @@ Set these in **Vercel → Project → Settings → Environment Variables** for P
 | --- | --- |
 | `LOG_LEVEL` | Override pino level (default `info`) |
 | `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | Image/video uploads (`/api/uploads/*`) |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | **Yes on Vercel** — full GCP service-account JSON (same key as Drive sync is fine) |
 | `PUBLIC_OBJECT_SEARCH_PATHS` | Replit/GCS public object search |
 | `PRIVATE_OBJECT_DIR` | Replit object entity paths |
-| `GOOGLE_APPLICATION_CREDENTIALS` / GCP ADC | GCS on Vercel (not Replit sidecar) |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Local dev only — path to JSON key file |
 
-Replit-only object storage sidecar vars are not used on Vercel; the Storage client uses Application Default Credentials when not on Replit.
+Replit-only object storage sidecar vars are not used on Vercel. On Vercel, set `GOOGLE_SERVICE_ACCOUNT_JSON` (not a file path). Push from repo root: `node scripts/push-gcs-vercel-env.cjs` (requires `DEFAULT_OBJECT_STORAGE_BUCKET_ID` in `.env`).
 
 ## Health endpoints (no database required)
 

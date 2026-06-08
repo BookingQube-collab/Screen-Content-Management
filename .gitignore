@@ -54,3 +54,8 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local dev uploads (when GCS bucket is not configured)
+artifacts/api-server/uploads/
+
+.vercel

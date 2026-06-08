@@ -1,6 +1,25 @@
 # Vercel environment variables checklist (Urban Arena API)
 
-Use this when `GET /` or `GET /api/health` returns `"database":"not_configured"`. That means **`DATABASE_URL` is missing or empty** on the **API** Vercel project (`artifacts/api-server` root), not the frontend project.
+## Wrong Root Directory (most common “no data in production”)
+
+If the **API** project (`screen-content-management-api-serve`) has **Root Directory** = `artifacts/urban-arena`, Vercel deploys the **Vite frontend** to the API URL. Symptoms:
+
+- `GET /` returns Urban Arena HTML (not `{"status":"ok",...}`)
+- `GET /api/health` on the API host → **`INFINITE_LOOP_DETECTED`** (frontend `vercel.json` rewrites `/api/*` to itself)
+- Supabase env vars are set but **never used** (no Express server)
+
+**Fix (API project only):** Vercel → **Settings → General → Root Directory** → **repo root** (empty / `.`) or `artifacts/api-server` — **not** `artifacts/urban-arena`. Enable **Include source files outside Root Directory** for monorepo. Redeploy Production (Git redeploy or `vercel deploy --prod --archive=tgz` from repo root).
+
+Verify after deploy:
+
+```text
+https://screen-content-management-api-serve-gold.vercel.app/api/health
+→ {"status":"ok","database":"configured"}
+```
+
+---
+
+Use this when `GET /` or `GET /api/health` returns `"database":"not_configured"`. That means **`DATABASE_URL` is missing or empty** on the **API** Vercel project, not the frontend project.
 
 ## Local `.env` vs Vercel
 

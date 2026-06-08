@@ -542,11 +542,13 @@ function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, stri
         headers: { ...authHeaders, "Content-Type": "application/json" },
         body: JSON.stringify({ key: "google_drive_service_account_key", value: keyJson }),
       });
+      const sanitizedParentId = parentId.trim().split(/[?#]/)[0].trim();
       await fetch("/api/settings", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "google_drive_parent_folder_id", value: parentId }),
+        body: JSON.stringify({ key: "google_drive_parent_folder_id", value: sanitizedParentId }),
       });
+      setParentId(sanitizedParentId);
       setMsg({ ok: true, text: "Google Drive credentials saved." });
     } catch {
       setMsg({ ok: false, text: "Failed to save credentials." });
@@ -612,9 +614,9 @@ function GoogleDriveSettings({ authHeaders }: { authHeaders: Record<string, stri
         )}
         <Input
           className={`font-mono text-sm ${loaded && !parentId.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-          placeholder="e.g. 1jgr_opvv6En580oGMxfY3UE-zkAtLZFX7dmr"
+          placeholder="e.g. 1jgr_opvv6En580oGMxfY3UE-zkAtLZFX"
           value={parentId}
-          onChange={e => setParentId(e.target.value.trim())}
+          onChange={e => setParentId(e.target.value.trim().split(/[?#]/)[0].trim())}
         />
         <p className="text-xs text-muted-foreground">
           Copy the folder ID from the Drive URL: drive.google.com/drive/folders/<strong>FOLDER_ID</strong>.

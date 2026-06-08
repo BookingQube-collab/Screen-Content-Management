@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { ListSettingsResponse, UpsertSettingBody, UpsertSettingResponse } from "@workspace/api-zod";
 import { requireAuth } from "./auth";
 import { broadcast } from "../lib/eventBus";
+import { sanitizeDriveFolderId } from "../lib/driveService";
 
 const router: IRouter = Router();
 
@@ -19,7 +20,11 @@ router.post("/settings", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const { key, value } = parsed.data;
+  const { key, value: rawValue } = parsed.data;
+  const value =
+    key === "google_drive_parent_folder_id"
+      ? sanitizeDriveFolderId(rawValue)
+      : rawValue;
 
   const existing = await db.select().from(settingsTable).where(eq(settingsTable.key, key));
 

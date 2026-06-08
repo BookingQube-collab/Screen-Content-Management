@@ -21,6 +21,16 @@ function isReplitObjectStorageSidecar(): boolean {
   );
 }
 
+function parseServiceAccountJson(): Record<string, unknown> | null {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON.");
+  }
+}
+
 function createStorageClient(): Storage {
   if (isReplitObjectStorageSidecar()) {
     return new Storage({
@@ -42,7 +52,15 @@ function createStorageClient(): Storage {
     });
   }
 
-  // Vercel / GCP: use Application Default Credentials when configured.
+  const credentials = parseServiceAccountJson();
+  if (credentials) {
+    return new Storage({
+      credentials,
+      projectId: typeof credentials.project_id === "string" ? credentials.project_id : undefined,
+    });
+  }
+
+  // Local GCP ADC / GOOGLE_APPLICATION_CREDENTIALS file path.
   return new Storage();
 }
 

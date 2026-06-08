@@ -3,63 +3,70 @@
 -- Run after 20260604120000_urban_arena_schema.sql
 
 -- ================================================================
--- Urban Arena â€” PRODUCTION Database Seed
+-- Urban Arena — PRODUCTION Database Seed
 -- Generated: 2026-06-04
 --
--- Run order: schema.sql â†’ seed-production.sql
+-- Run order: schema.sql → seed-production.sql
 --
--- âš ï¸  NOTES:
---   â€¢ Passwords are bcrypt hashes â€” reset via Admin panel after import
---   â€¢ logo_url / hero_image_url values starting with /api/uploads/files/
---     are uploaded files on the production server â€” they will appear
+-- ⚠️  NOTES:
+--   • Passwords are bcrypt hashes — reset via Admin panel after import
+--   • logo_url / hero_image_url values starting with /api/uploads/files/
+--     are uploaded files on the production server — they will appear
 --     broken in a local environment unless you re-upload the same files
---   â€¢ drive_folders and drive_assets are empty in production
+--   • drive_folders and drive_assets are empty in production
 -- ================================================================
 
 -- Allow inserting explicit IDs (disable FK checks during load)
 SET session_replication_role = replica;
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- 1. LOCATIONS
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 INSERT INTO locations (id, name, code, address, logo_url, is_active, created_at, updated_at) VALUES
   (1, 'Urban Arena',         'UA-DM',  'Doha Mall',   NULL, true, '2026-03-22 15:19:03.172834+00', '2026-03-22 17:09:22.251+00'),
   (3, 'InflataPark',         'INF-CC', 'City Center', NULL, true, '2026-03-22 15:41:31.39201+00',  '2026-03-22 15:41:31.39201+00'),
-  (4, 'Kids Driving School', 'KDS-CC', 'City Center', NULL, true, '2026-03-22 15:41:56.975804+00', '2026-03-22 15:41:56.975804+00') ON CONFLICT (id) DO NOTHING;
+  (4, 'Kids Driving School', 'KDS-CC', 'City Center', NULL, true, '2026-03-22 15:41:56.975804+00', '2026-03-22 15:41:56.975804+00') ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, code = EXCLUDED.code, address = EXCLUDED.address,
+  logo_url = EXCLUDED.logo_url, is_active = EXCLUDED.is_active, updated_at = EXCLUDED.updated_at;
 
 SELECT setval('locations_id_seq', (SELECT MAX(id) FROM locations));
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- 2. SCREENS
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 INSERT INTO screens (id, name, code, location_id, module_type, orientation, is_active, notes, created_at, updated_at) VALUES
   (1, 'Ticketing Counter', 'TAB-ENT-1', 1, 'activity-screen', 'landscape', true, NULL, '2026-03-22 15:20:01.306556+00', '2026-03-22 15:20:01.306556+00'),
-  (2, 'Entrance TV 1',     'TV-ENT-01', 1, 'activity-screen', 'landscape', true, NULL, '2026-03-22 15:20:02.302581+00', '2026-03-24 12:54:08.627+00') ON CONFLICT (id) DO NOTHING;
+  (2, 'Entrance TV 1',     'TV-ENT-01', 1, 'activity-screen', 'landscape', true, NULL, '2026-03-22 15:20:02.302581+00', '2026-03-24 12:54:08.627+00') ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, code = EXCLUDED.code, location_id = EXCLUDED.location_id,
+  module_type = EXCLUDED.module_type, orientation = EXCLUDED.orientation,
+  is_active = EXCLUDED.is_active, notes = EXCLUDED.notes, updated_at = EXCLUDED.updated_at;
 
 SELECT setval('screens_id_seq', (SELECT MAX(id) FROM screens));
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- 3. ADMIN USERS
 -- Default password hash = "admin123"
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 INSERT INTO admin_users (id, email, password_hash, name, role, created_at) VALUES
   (1, 'admin@urbanarena.com', '$2b$10$83.5U/igmfRpMrwP8hb39OQogWVpv7EIAE1q4pnG1MtE27eAUEAEm', NULL,   'super_admin', '2026-03-19 21:39:15.945199+00'),
-  (4, 'mary@e3.com',          '$2b$10$S296MIxcW.rgqat0.IuPLuXl2plQZVR5uIKi6YChrSUTbLTvbHMhW', 'Mary', 'user',        '2026-03-25 16:01:19.018063+00') ON CONFLICT (id) DO NOTHING;
+  (4, 'mary@e3.com',          '$2b$10$S296MIxcW.rgqat0.IuPLuXl2plQZVR5uIKi6YChrSUTbLTvbHMhW', 'Mary', 'user',        '2026-03-25 16:01:19.018063+00') ON CONFLICT (id) DO UPDATE SET
+  email = EXCLUDED.email, password_hash = EXCLUDED.password_hash,
+  name = EXCLUDED.name, role = EXCLUDED.role;
 
 SELECT setval('admin_users_id_seq', (SELECT MAX(id) FROM admin_users));
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- 4. USER PERMISSIONS
--- mary@e3.com â†’ InflataPark (location_id = 3)
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- mary@e3.com → InflataPark (location_id = 3)
+-- ────────────────────────────────────────────────────────────────
 INSERT INTO user_permissions (id, user_id, location_id, activity_id, created_at) VALUES
   (1, 4, 3, NULL, '2026-03-25 16:01:19.247013+00') ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('user_permissions_id_seq', (SELECT MAX(id) FROM user_permissions));
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- 5. SETTINGS
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 INSERT INTO settings (key, value) VALUES
   ('admin_title_part1',  'E'),
   ('admin_title_part2',  '3'),
@@ -72,11 +79,11 @@ INSERT INTO settings (key, value) VALUES
   ('logo_url',           ''),
   ('overlay_heading',    'EXPLORE'),
   ('slide_interval',     '5')
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- 6. ACTIVITIES  (19 rows)
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 INSERT INTO activities (
   id, name, slug, short_description, full_description,
   age_limit, terms_and_conditions,
@@ -88,7 +95,7 @@ INSERT INTO activities (
   created_at, updated_at
 ) VALUES
 
--- sort_order 0 â€” Welcome screen with gallery
+-- sort_order 0 — Welcome screen with gallery
 (22, 'TV Screen 1', 'asd', 'sds', '',
   18, '',
   NULL, NULL, NULL, NULL,
@@ -180,7 +187,7 @@ INSERT INTO activities (
 
 -- sort_order 7
 (10, 'Dartsee', 'dartsee',
-  'Electronic darts â€” aim, throw, score!',
+  'Electronic darts — aim, throw, score!',
   'Modern electronic darts boards in a premium setting. Perfect for competitive players and casual fun alike.',
   12, 'Companion could easily participate; keep paid access only.',
   NULL,
@@ -220,7 +227,7 @@ INSERT INTO activities (
 
 -- sort_order 10
 (13, 'Axe', 'axe-throwing',
-  'Axe throwing â€” the ultimate precision sport',
+  'Axe throwing — the ultimate precision sport',
   'Channel your inner lumberjack in our supervised axe throwing lanes. Training provided, targets await.',
   12, 'Medium-risk activity; no free companion entry.',
   NULL,
@@ -287,7 +294,7 @@ INSERT INTO activities (
 -- sort_order 15
 (18, 'Projection Billiards', 'projection-billiards',
   'Billiards with stunning projected visuals',
-  'Experience billiards like never before â€” projection-mapped tables that transform every shot into a visual spectacle.',
+  'Experience billiards like never before — projection-mapped tables that transform every shot into a visual spectacle.',
   14, 'Premium area; charged separately.',
   NULL,
   'https://picsum.photos/seed/projection-pool/800/600', NULL,
@@ -300,7 +307,7 @@ INSERT INTO activities (
 -- sort_order 16
 (19, 'Other Kids Arcade Games', 'kids-arcade',
   'Classic arcade fun for the whole family',
-  'A huge selection of kid-friendly arcade machines â€” from claw games to racing cabinets and everything in between.',
+  'A huge selection of kid-friendly arcade machines — from claw games to racing cabinets and everything in between.',
   3, 'Main kid-friendly area where companion policy is easiest to apply.',
   NULL,
   'https://picsum.photos/seed/arcade-games-kids/800/600', NULL,
@@ -312,7 +319,7 @@ INSERT INTO activities (
 
 -- sort_order 17
 (20, 'Mini Golf', 'mini-golf',
-  'Themed mini golf course â€” putt your way to glory',
+  'Themed mini golf course — putt your way to glory',
   'Navigate our creative themed mini golf course. Great for families, dates, and group outings of all sizes.',
   4, 'Companion may assist younger child; no playing unless ticketed.',
   NULL,
@@ -325,7 +332,7 @@ INSERT INTO activities (
 
 -- sort_order 18
 (21, 'Speed Grid', 'speed-grid',
-  'Physical agility grid challenge â€” beat the clock',
+  'Physical agility grid challenge — beat the clock',
   'Test your speed, agility, and reflexes on our physical Speed Grid course. Compete against friends or chase your personal best.',
   4, 'Physical game; companion should supervise from outside only.',
   NULL,
@@ -334,13 +341,27 @@ INSERT INTO activities (
   true, false, 18, 'Go Fast',
   1, 1, 'vertical-kiosk',
   true, 'once', false, false, NULL, NULL,
-  '2026-03-19 22:12:39.695753+00', '2026-03-22 16:10:14.601+00') ON CONFLICT (id) DO NOTHING;
+  '2026-03-19 22:12:39.695753+00', '2026-03-22 16:10:14.601+00') ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, slug = EXCLUDED.slug,
+  short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
+  age_limit = EXCLUDED.age_limit, terms_and_conditions = EXCLUDED.terms_and_conditions,
+  logo_url = EXCLUDED.logo_url, hero_image_url = EXCLUDED.hero_image_url,
+  hero_video_url = EXCLUDED.hero_video_url, card_image_url = EXCLUDED.card_image_url,
+  hero_gallery_urls = EXCLUDED.hero_gallery_urls,
+  is_active = EXCLUDED.is_active, is_featured = EXCLUDED.is_featured,
+  sort_order = EXCLUDED.sort_order, cta_text = EXCLUDED.cta_text,
+  location_id = EXCLUDED.location_id, screen_id = EXCLUDED.screen_id,
+  module_type = EXCLUDED.module_type, is_offline_enabled = EXCLUDED.is_offline_enabled,
+  video_playback = EXCLUDED.video_playback, hide_info = EXCLUDED.hide_info,
+  hide_location_logo = EXCLUDED.hide_location_logo,
+  valid_from = EXCLUDED.valid_from, valid_to = EXCLUDED.valid_to,
+  updated_at = EXCLUDED.updated_at;
 
 SELECT setval('activities_id_seq', (SELECT MAX(id) FROM activities));
 
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 -- drive_folders and drive_assets are empty in production
--- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ────────────────────────────────────────────────────────────────
 
 -- Re-enable FK checks
 SET session_replication_role = DEFAULT;

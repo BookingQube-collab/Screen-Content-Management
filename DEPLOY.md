@@ -119,7 +119,7 @@ Copy the **Name** column exactly into Vercel. Values come from your local `.env`
 | `SUPABASE_ANON_KEY` | No | Optional; for future client Supabase auth |
 | `LOG_LEVEL` | No | e.g. `info` |
 | `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | If using uploads | GCS bucket for `/api/uploads/*` on Vercel |
-| GCP credentials | If using uploads | Application Default Credentials (not Replit sidecar) |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | If using uploads | Full GCP service-account JSON on Vercel (not a file path) |
 
 **Minimum for a working API:** `DATABASE_URL` + `JWT_SECRET` only. Redeploy after adding or changing vars.
 
