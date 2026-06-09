@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Pages
 import DisplayPage        from "@/pages/display";
@@ -57,6 +58,7 @@ function App() {
         <Router />
       </WouterRouter>
       <Toaster />
+      <SpeedInsights />
     </QueryClientProvider>
   );
 }
